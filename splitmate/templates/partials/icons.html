@@ -1,0 +1,43 @@
+{# Inline SVG icon set. Self-hosted so the app has no CDN dependency. #}
+{% macro icon(name, size=18) -%}
+<svg class="icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+     aria-hidden="true">
+  {%- if name == 'dashboard' -%}<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+  {%- elif name == 'wallet' -%}<path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z"/><circle cx="16.5" cy="14" r="1.2"/>
+  {%- elif name == 'plus' -%}<path d="M12 5v14M5 12h14"/>
+  {%- elif name == 'settings' -%}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+  {%- elif name == 'users' -%}<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+  {%- elif name == 'user' -%}<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  {%- elif name == 'logout' -%}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>
+  {%- elif name == 'info' -%}<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>
+  {%- elif name == 'arrow-right' -%}<path d="M5 12h14M13 5l7 7-7 7"/>
+  {%- elif name == 'arrow-left' -%}<path d="M19 12H5M11 19l-7-7 7-7"/>
+  {%- elif name == 'check' -%}<path d="M20 6 9 17l-5-5"/>
+  {%- elif name == 'x' -%}<path d="M18 6 6 18M6 6l12 12"/>
+  {%- elif name == 'trash' -%}<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+  {%- elif name == 'edit' -%}<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+  {%- elif name == 'download' -%}<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>
+  {%- elif name == 'handshake' -%}<path d="m11 17 2 2a1 1 0 0 0 1.5 0l3-3"/><path d="m14 14 2.5 2.5a1 1 0 0 0 1.5 0L21 13.5V8l-4-4h-3l-2 2"/><path d="M3 13.5 6 16a1 1 0 0 0 1.5 0L10 13.5"/><path d="M3 8V6l3-3h4l3 3"/>
+  {%- elif name == 'menu' -%}<path d="M3 6h18M3 12h18M3 18h18"/>
+  {%- elif name == 'sun' -%}<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+  {%- elif name == 'moon' -%}<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
+  {%- elif name == 'search' -%}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+  {%- elif name == 'archive' -%}<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/>
+  {%- elif name == 'receipt' -%}<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/>
+  {%- elif name == 'utensils' -%}<path d="M4 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M6 12v9M15 3c-1.5 1.5-2 3.5-2 5.5S13.5 12 15 12h2V3Z"/><path d="M17 12v9"/>
+  {%- elif name == 'basket' -%}<path d="m5 9 3-6M19 9l-3-6"/><path d="M3 9h18l-1.6 9.3a2 2 0 0 1-2 1.7H6.6a2 2 0 0 1-2-1.7Z"/>
+  {%- elif name == 'home' -%}<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 21v-7h6v7"/>
+  {%- elif name == 'plane' -%}<path d="M17.8 19.2 16 11l5-5a2 2 0 0 0-2.8-2.8l-5 5-8.2-1.8a1 1 0 0 0-.9 1.7l6.1 3.6-2.4 2.4-2.4-.5-.9 1 3 1.9 1.9 3 1-.9-.5-2.4 2.4-2.4 3.6 6.1a1 1 0 0 0 1.7-.9Z"/>
+  {%- elif name == 'car' -%}<path d="M5 17h14M6 17v2M18 17v2"/><path d="M4 17v-4l2-5h12l2 5v4"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/>
+  {%- elif name == 'ticket' -%}<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/><path d="M13 7v10"/>
+  {%- elif name == 'bag' -%}<path d="M6 7h12l1 13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>
+  {%- elif name == 'heart' -%}<path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l8.8 8.8 8.8-8.8a5 5 0 0 0 0-7.1Z"/>
+  {%- elif name == 'tag' -%}<path d="M20.6 13.4 12 4.8H4v8l8.6 8.6a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8Z"/><circle cx="7.5" cy="8.5" r="1.2"/>
+  {%- elif name == 'chart' -%}<path d="M3 21h18"/><rect x="5" y="12" width="4" height="6" rx="1"/><rect x="11" y="7" width="4" height="11" rx="1"/><rect x="17" y="3" width="4" height="15" rx="1"/>
+  {%- elif name == 'shield' -%}<path d="M12 3 5 6v6c0 4.4 2.9 8.3 7 9.5 4.1-1.2 7-5.1 7-9.5V6Z"/><path d="m9 12 2 2 4-4"/>
+  {%- elif name == 'scale' -%}<path d="M12 3v18M7 21h10"/><path d="M5 7h14"/><path d="m5 7-3 6h6ZM19 7l-3 6h6Z"/>
+  {%- else -%}<circle cx="12" cy="12" r="9"/>
+  {%- endif -%}
+</svg>
+{%- endmacro %}

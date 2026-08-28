@@ -1,0 +1,114 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, field %}
+{% block title %}{{ 'Edit expense' if expense else 'Add expense' }} - {{ app_name }}{% endblock %}
+{% block main_class %}main-narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb">
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a> /
+      <a href="{{ url_for('groups.detail', group_id=group.id) }}">{{ group.name }}</a> /
+      {{ 'Edit expense' if expense else 'Add expense' }}
+    </div>
+    <h1>{{ 'Edit expense' if expense else 'Add an expense' }}</h1>
+    <p class="subtitle">Amounts are in {{ group.currency }}. Shares always add back up to the total.</p>
+  </div>
+</div>
+
+<form method="post" novalidate>
+  {{ form.csrf_token }}
+
+  <div class="card mb-1">
+    <div class="card-head"><h2>What was it</h2></div>
+    <div class="card-body">
+      {{ field(form.description, autofocus=True, placeholder='Airport cab') }}
+      <div class="field-row">
+        <div class="field {% if form.amount.errors %}has-error{% endif %}">
+          {{ form.amount.label }}
+          <div class="input-prefix">
+            <span class="prefix">{{ group.currency|symbol }}</span>
+            {{ form.amount(id='amount-input', step='0.01', min='0.01', placeholder='0.00') }}
+          </div>
+          {% for e in form.amount.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+        </div>
+        {{ field(form.spent_at) }}
+      </div>
+      <div class="field-row">
+        {{ field(form.payer_id) }}
+        {{ field(form.category) }}
+      </div>
+      {{ field(form.notes, placeholder='Anything worth remembering later') }}
+    </div>
+  </div>
+
+  <div class="card mb-1" id="split-editor" data-currency-symbol="{{ group.currency|symbol }}">
+    <div class="card-head">
+      <h2>How to split it</h2>
+      <button type="button" class="btn btn-sm btn-ghost" id="select-all">Toggle everyone</button>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <span class="field-label">Method</span>
+        <div class="split-toggle">
+          {% for value, label in [('equal','Equally'), ('exact','Exact amounts'), ('shares','By shares')] %}
+          <input type="radio" name="split_type" id="split-{{ value }}" value="{{ value }}"
+                 {{ 'checked' if form.split_type.data == value }}>
+          <label for="split-{{ value }}">{{ label }}</label>
+          {% endfor %}
+        </div>
+        <div class="field-hint">
+          Equally divides the total between everyone ticked. Exact amounts must add up to the total.
+          Shares weight the split, so a 2 pays twice what a 1 pays.
+        </div>
+      </div>
+
+      <div class="participants">
+        {% for m in group.members %}
+        {% set uid = m.user_id %}
+        <div class="participant {{ 'off' if uid not in selected }}">
+          <input type="checkbox" name="participant" value="{{ uid }}" id="p-{{ uid }}"
+                 {{ 'checked' if uid in selected }} aria-label="Include {{ m.user.full_name }}">
+          <label class="row" for="p-{{ uid }}">
+            {{ avatar(m.user, 'avatar-sm') }}
+            <span class="name">
+              {{ m.user.full_name }}
+              {% if uid == current_user.id %}<span class="badge badge-accent">you</span>{% endif %}
+            </span>
+          </label>
+          <div>
+            <span data-split-mode="equal" class="right mono muted small" style="display:block">
+              <span data-equal-share></span>
+            </span>
+            <span data-split-mode="exact" hidden>
+              <input type="number" step="0.01" min="0" name="exact-{{ uid }}"
+                     value="{{ exact.get(uid, '') }}" placeholder="0.00"
+                     aria-label="Exact amount for {{ m.user.full_name }}">
+            </span>
+            <span data-split-mode="shares" hidden>
+              <input type="number" step="1" min="0" name="weight-{{ uid }}"
+                     value="{{ weights.get(uid, '1') }}"
+                     aria-label="Shares for {{ m.user.full_name }}">
+              <span class="tiny muted right" style="display:block" data-share-amount></span>
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="split-summary" id="split-summary">
+        <span>Allocated <strong id="split-allocated">-</strong></span>
+        <span id="split-remainder"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    {{ form.submit(class='btn btn-primary') }}
+    <a class="btn btn-ghost"
+       href="{{ url_for('expenses.detail', group_id=group.id, expense_id=expense.id) if expense
+                else url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

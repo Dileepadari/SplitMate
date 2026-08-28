@@ -1,0 +1,66 @@
+{# Shared by the signed-in and public About pages. #}
+<div class="page-head">
+  <div>
+    <h1>About {{ app_name }}</h1>
+    <p class="subtitle">
+      A shared-expense tracker that started as a hackathon project and grew a proper ledger.
+    </p>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head"><h2>What it does</h2></div>
+  <div class="card-body stack">
+    <p class="muted">
+      Every expense in a group records who paid and how the cost was divided. From that,
+      {{ app_name }} derives one number per person: what they put in, minus what they used up,
+      minus anything already paid back. A positive number means the group owes them.
+    </p>
+    <p class="muted">
+      Turning those numbers into actual payments is the interesting part. Rather than asking
+      everyone to repay every expense individually, {{ app_name }} matches the biggest debtor
+      against the biggest creditor until nothing is left. That needs at most one payment per
+      person instead of one per expense.
+    </p>
+    <p class="muted">
+      Splitting is never allowed to lose money. Dividing 100 three ways gives 33.34, 33.33 and
+      33.33, not three amounts that quietly add up to 99.99.
+    </p>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head"><h2>Built by</h2></div>
+  <div class="card-body">
+    <div class="people">
+      <div class="person">
+        <span class="avatar avatar-lg">DA</span>
+        <div class="strong">Dileep Adari</div>
+        <div class="role">Backend and data model</div>
+        <div class="contact">dileepkumar.adari@students.iiit.ac.in</div>
+      </div>
+      <div class="person">
+        <span class="avatar avatar-lg">AP</span>
+        <div class="strong">Aadi Prasad</div>
+        <div class="role">Dashboard and groups UI</div>
+      </div>
+      <div class="person">
+        <span class="avatar avatar-lg">CC</span>
+        <div class="strong">Chanukya Charyulu</div>
+        <div class="role">Settings and about UI</div>
+        <div class="contact">satuluri.charyulu@students.iiit.ac.in</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Version</h2></div>
+  <div class="card-body row">
+    <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+    <span>
+      <div class="strong">{{ app_name }} {{ app_version }}</div>
+      <div class="tiny muted">Flask, SQLAlchemy and server-rendered Jinja. No build step.</div>
+    </span>
+  </div>
+</div>

@@ -1,0 +1,217 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, net_badge, post_button, empty_state %}
+{% block title %}{{ group.name }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('main.dashboard') }}">Dashboard</a> / {{ group.name }}</div>
+    <h1>
+      {{ group.name }}
+      {% if group.archived %}<span class="badge badge-warn">archived</span>{% endif %}
+    </h1>
+    <p class="subtitle">
+      {{ group.members|length }} member{{ '' if group.members|length == 1 else 's' }}
+      &middot; {{ group.expenses|length }} expense{{ '' if group.expenses|length == 1 else 's' }}
+      &middot; {{ group.total_spend|money(group.currency) }} total
+      {% if group.description %}<br>{{ group.description }}{% endif %}
+    </p>
+  </div>
+  <div class="row wrap">
+    <a class="btn" href="{{ url_for('groups.members', group_id=group.id) }}">{{ icon('users', 16) }} Members</a>
+    <a class="btn" href="{{ url_for('groups.settle', group_id=group.id) }}">{{ icon('handshake', 16) }} Settle up</a>
+    <a class="btn btn-primary" href="{{ url_for('expenses.new', group_id=group.id) }}">{{ icon('plus', 16) }} Add expense</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat {{ 'stat-pos' if my_balance > 0 }}{{ 'stat-neg' if my_balance < 0 }}{{ 'stat-accent' if my_balance == 0 }}">
+    <div class="label">Your balance here</div>
+    <div class="value">{% if my_balance == 0 %}Settled{% else %}{{ my_balance|money(group.currency) }}{% endif %}</div>
+    <div class="hint">
+      {% if my_balance > 0 %}the group owes you
+      {% elif my_balance < 0 %}you owe the group
+      {% else %}nothing outstanding{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="label">Group spend</div>
+    <div class="value">{{ group.total_spend|money(group.currency) }}</div>
+    <div class="hint">{{ group.expenses|length }} expense(s) recorded</div>
+  </div>
+  <div class="stat">
+    <div class="label">Payments to make</div>
+    <div class="value">{{ transfers|length }}</div>
+    <div class="hint">{{ 'everyone is square' if not transfers else 'to clear every balance' }}</div>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head">
+    <h2>Who owes whom</h2>
+    <a class="btn btn-sm" href="{{ url_for('groups.settle', group_id=group.id) }}">Record a payment</a>
+  </div>
+  {% if transfers %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Pays</th><th></th><th>Receives</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>
+        {% for t in transfers %}
+        <tr>
+          <td><span class="row">{{ avatar(t.debtor, 'avatar-sm') }} {{ t.debtor.full_name }}</span></td>
+          <td class="faint">{{ icon('arrow-right', 16) }}</td>
+          <td><span class="row">{{ avatar(t.creditor, 'avatar-sm') }} {{ t.creditor.full_name }}</span></td>
+          <td class="num mono strong">{{ t.amount|money(group.currency) }}</td>
+          <td class="num">
+            <a class="btn btn-sm" href="{{ url_for('groups.settle', group_id=group.id, from=t.debtor.id, to=t.creditor.id, amount=t.amount) }}">Settle</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="icon">{{ icon('check', 22) }}</div>
+    <h3>All settled</h3>
+    <p>Nobody in this group owes anybody anything.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-1">
+  <div class="card-head">
+    <h2>Balances</h2>
+    <span class="tiny faint">paid minus consumed, after recorded payments</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>Member</th><th class="num">Paid</th><th class="num">Their share</th>
+            <th class="num">Payments</th><th class="num">Net</th></tr>
+      </thead>
+      <tbody>
+        {% for b in balances %}
+        <tr>
+          <td>
+            <span class="row">
+              {{ avatar(b.user, 'avatar-sm') }}
+              <span>
+                {{ b.user.full_name }}
+                {% if b.user.id == current_user.id %}<span class="badge badge-accent">you</span>{% endif %}
+              </span>
+            </span>
+          </td>
+          <td class="num mono">{{ b.paid|money(group.currency) }}</td>
+          <td class="num mono">{{ b.owed|money(group.currency) }}</td>
+          <td class="num mono faint">
+            {%- if b.settled_out or b.settled_in -%}
+              +{{ b.settled_out|money(group.currency) }} / -{{ b.settled_in|money(group.currency) }}
+            {%- else -%}&mdash;{%- endif -%}
+          </td>
+          <td class="num">{{ net_badge(b.net, group.currency) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head">
+    <h2>Expenses</h2>
+    <a class="btn btn-sm" href="{{ url_for('groups.export_csv', group_id=group.id) }}">{{ icon('download', 15) }} Export CSV</a>
+  </div>
+  <form class="filter-bar" method="get">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search description, note or payer" aria-label="Search expenses">
+    <select name="category" aria-label="Filter by category">
+      <option value="">All categories</option>
+      {% for value, label in [('general','General'),('food','Food and drink'),('groceries','Groceries'),('rent','Rent and bills'),('travel','Travel'),('transport','Transport'),('entertainment','Entertainment'),('shopping','Shopping'),('health','Health'),('other','Other')] %}
+      <option value="{{ value }}" {{ 'selected' if category == value }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-sm" type="submit">{{ icon('search', 15) }} Filter</button>
+    {% if query or category %}
+    <a class="btn btn-sm btn-ghost" href="{{ url_for('groups.detail', group_id=group.id) }}">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if expenses %}
+  <div>
+    {% for e in expenses %}
+    <a class="list-row" href="{{ url_for('expenses.detail', group_id=group.id, expense_id=e.id) }}">
+      <span class="cat-icon">{{ icon(e.category|category_icon, 17) }}</span>
+      <span class="grow">
+        <div class="title">{{ e.description }}</div>
+        <div class="sub">
+          {{ e.spent_at|day }} &middot; paid by {{ e.payer.display_name }}
+          &middot; split {{ e.split_type.value }} between {{ e.shares|length }}
+        </div>
+      </span>
+      {% set mine = e.share_for(current_user.id) %}
+      <span class="right nowrap">
+        <div class="mono strong">{{ e.amount|money(group.currency) }}</div>
+        <div class="tiny muted">
+          {% if e.payer_id == current_user.id %}you paid
+          {% elif mine %}your share {{ mine|money(group.currency) }}
+          {% else %}not your split{% endif %}
+        </div>
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  {% elif query or category %}
+  <div class="empty"><p>No expense matches that filter.</p></div>
+  {% else %}
+  {{ empty_state('receipt', 'No expenses yet',
+      'Add the first one and SplitMate starts tracking who owes what.',
+      url_for('expenses.new', group_id=group.id), 'Add an expense') }}
+  {% endif %}
+</div>
+
+{% if group.settlements %}
+<div class="card mb-1">
+  <div class="card-head"><h2>Recorded payments</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Date</th><th>From</th><th>To</th><th>Note</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>
+        {% for s in group.settlements %}
+        <tr>
+          <td class="nowrap">{{ s.settled_at|day }}</td>
+          <td>{{ s.from_user.full_name }}</td>
+          <td>{{ s.to_user.full_name }}</td>
+          <td class="muted">{{ s.note or '-' }}</td>
+          <td class="num mono">{{ s.amount|money(group.currency) }}</td>
+          <td class="num">
+            {% if is_owner or s.from_user_id == current_user.id %}
+            {{ post_button(url_for('groups.delete_settlement', group_id=group.id, settlement_id=s.id),
+                           'Undo', confirm_form, 'btn btn-sm btn-ghost',
+                           'Remove this recorded payment?') }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2>Group settings</h2></div>
+  <div class="card-body row wrap">
+    {% if is_owner %}
+      <a class="btn" href="{{ url_for('groups.edit', group_id=group.id) }}">{{ icon('edit', 16) }} Edit group</a>
+      {{ post_button(url_for('groups.archive', group_id=group.id),
+                     'Restore' if group.archived else 'Archive', confirm_form, 'btn') }}
+      {{ post_button(url_for('groups.delete', group_id=group.id), 'Delete group', confirm_form,
+                     'btn btn-danger',
+                     'Delete ' ~ group.name ~ ' and every expense in it? This cannot be undone.') }}
+    {% endif %}
+    {{ post_button(url_for('groups.leave', group_id=group.id), 'Leave group', confirm_form,
+                   'btn btn-danger', 'Leave ' ~ group.name ~ '?') }}
+  </div>
+</div>
+{% endblock %}

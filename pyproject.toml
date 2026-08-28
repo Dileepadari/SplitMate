@@ -1,0 +1,23 @@
+[project]
+name = "splitmate"
+version = "2.0.0"
+description = "Shared expense tracking for groups: split bills, track balances, settle up."
+requires-python = ">=3.11"
+readme = "README.md"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["splitmate*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+filterwarnings = ["error::DeprecationWarning:splitmate.*"]
+
+[tool.coverage.run]
+source = ["splitmate"]
+omit = ["splitmate/cli.py"]

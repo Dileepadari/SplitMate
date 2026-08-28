@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "partials/ui.html" import field %}
+{% block title %}Sign in - {{ app_name }}{% endblock %}
+
+{% block layout %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+      <span>{{ app_name }}</span>
+    </a>
+    <h1>Welcome back</h1>
+    <p class="lead">Sign in to see where your groups stand.</p>
+
+    <form method="post" novalidate>
+      {{ form.csrf_token }}
+      {{ field(form.identifier, autofocus=True, placeholder='you@example.com') }}
+      {{ field(form.password, placeholder='Your password') }}
+      <label class="check">{{ form.remember() }} {{ form.remember.label.text }}</label>
+      <div class="form-actions">{{ form.submit(class='btn btn-primary btn-block') }}</div>
+    </form>
+
+    <p class="auth-foot">
+      New here? <a href="{{ url_for('auth.register') }}">Create an account</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

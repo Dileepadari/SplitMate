@@ -1,0 +1,60 @@
+{% from "partials/icons.html" import icon %}
+
+{# Avatar: a user's image when they set one, initials otherwise. #}
+{% macro avatar(user, size='') -%}
+  {%- if user.avatar_url -%}
+    <img class="avatar {{ size }}" src="{{ user.avatar_url }}" alt="" loading="lazy">
+  {%- else -%}
+    <span class="avatar {{ size }}" aria-hidden="true">{{ user.initials }}</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# A signed balance rendered with the right colour and wording. #}
+{% macro net_badge(net, currency) -%}
+  {%- if net > 0 -%}
+    <span class="badge badge-pos">owed {{ net|abs_money(currency) }}</span>
+  {%- elif net < 0 -%}
+    <span class="badge badge-neg">owes {{ net|abs_money(currency) }}</span>
+  {%- else -%}
+    <span class="badge">settled</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# Renders a WTForms field with its label, errors and optional hint. #}
+{% macro field(f, hint=None, autofocus=False, placeholder=None, prefix=None) -%}
+<div class="field {% if f.errors %}has-error{% endif %}">
+  {{ f.label }}
+  {% if prefix %}
+  <div class="input-prefix">
+    <span class="prefix">{{ prefix }}</span>
+    {{ f(autofocus=autofocus, placeholder=placeholder or '') }}
+  </div>
+  {% else %}
+    {{ f(autofocus=autofocus, placeholder=placeholder or '') }}
+  {% endif %}
+  {% for error in f.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+  {% if hint %}<div class="field-hint">{{ hint }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# A POST button guarded by CSRF, for anything destructive. #}
+{% macro post_button(action, label, form, css='btn btn-sm', confirm=None, icon_name=None) -%}
+<form method="post" action="{{ action }}" class="inline-form"
+      {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
+  {{ form.csrf_token }}
+  <button type="submit" class="{{ css }}">
+    {%- if icon_name %}{{ icon(icon_name, 15) }}{% endif %}{{ label }}
+  </button>
+</form>
+{%- endmacro %}
+
+{% macro empty_state(icon_name, title, message, action_url=None, action_label=None) -%}
+<div class="empty">
+  <div class="icon">{{ icon(icon_name, 22) }}</div>
+  <h3>{{ title }}</h3>
+  <p>{{ message }}</p>
+  {% if action_url %}
+  <a class="btn btn-primary mt-1" href="{{ action_url }}">{{ icon('plus', 16) }}{{ action_label }}</a>
+  {% endif %}
+</div>
+{%- endmacro %}

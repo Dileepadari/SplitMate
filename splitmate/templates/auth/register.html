@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/ui.html" import field %}
+{% block title %}Create account - {{ app_name }}{% endblock %}
+
+{% block layout %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+      <span>{{ app_name }}</span>
+    </a>
+    <h1>Create your account</h1>
+    <p class="lead">Groups find you by username or email, so pick something your friends will recognise.</p>
+
+    <form method="post" novalidate>
+      {{ form.csrf_token }}
+      {{ field(form.username, autofocus=True, placeholder='dileep', hint='Letters, numbers, dot, dash and underscore.') }}
+      {{ field(form.email, placeholder='you@example.com') }}
+      <div class="field-row">
+        {{ field(form.first_name, placeholder='Dileep') }}
+        {{ field(form.last_name, placeholder='Adari') }}
+      </div>
+      {{ field(form.password, hint='At least 8 characters.') }}
+      {{ field(form.confirm) }}
+      <div class="form-actions">{{ form.submit(class='btn btn-primary btn-block') }}</div>
+    </form>
+
+    <p class="auth-foot">
+      Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

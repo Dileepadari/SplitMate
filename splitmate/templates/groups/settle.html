@@ -1,0 +1,88 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, field, net_badge %}
+{% block title %}Settle up in {{ group.name }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb">
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a> /
+      <a href="{{ url_for('groups.detail', group_id=group.id) }}">{{ group.name }}</a> / Settle up
+    </div>
+    <h1>Settle up</h1>
+    <p class="subtitle">Record money that actually changed hands. It adjusts the balances immediately.</p>
+  </div>
+  <a class="btn" href="{{ url_for('groups.detail', group_id=group.id) }}">{{ icon('arrow-left', 16) }} Back to group</a>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head">
+    <h2>Suggested payments</h2>
+    <span class="tiny faint">the fewest transfers that clear everyone</span>
+  </div>
+  {% if transfers %}
+  <div>
+    {% for t in transfers %}
+    <div class="list-row">
+      <span class="row grow">
+        {{ avatar(t.debtor, 'avatar-sm') }}
+        <span class="title">{{ t.debtor.full_name }}</span>
+        <span class="faint">{{ icon('arrow-right', 15) }}</span>
+        {{ avatar(t.creditor, 'avatar-sm') }}
+        <span class="title">{{ t.creditor.full_name }}</span>
+      </span>
+      <span class="mono strong nowrap">{{ t.amount|money(group.currency) }}</span>
+      <a class="btn btn-sm"
+         href="{{ url_for('groups.settle', group_id=group.id, from=t.debtor.id, to=t.creditor.id, amount=t.amount) }}">Use</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="icon">{{ icon('check', 22) }}</div>
+    <h3>Nothing to settle</h3>
+    <p>Every balance in this group is already zero.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-1">
+  <div class="card-head"><h2>Record a payment</h2></div>
+  <div class="card-body">
+    <form method="post" novalidate>
+      {{ form.csrf_token }}
+      <div class="field-row">
+        {{ field(form.from_user_id) }}
+        {{ field(form.to_user_id) }}
+      </div>
+      <div class="field-row">
+        {{ field(form.amount, prefix=group.currency|symbol) }}
+        {{ field(form.settled_at) }}
+      </div>
+      {{ field(form.note, placeholder='UPI, cash, bank transfer...') }}
+      <div class="form-actions">
+        {{ form.submit(class='btn btn-primary') }}
+        <a class="btn btn-ghost" href="{{ url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Current balances</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Member</th><th class="num">Net</th></tr></thead>
+      <tbody>
+        {% for b in balances %}
+        <tr>
+          <td><span class="row">{{ avatar(b.user, 'avatar-sm') }} {{ b.user.full_name }}</span></td>
+          <td class="num">{{ net_badge(b.net, group.currency) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

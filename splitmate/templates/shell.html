@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar %}
+
+{% block layout %}
+<header class="app-header">
+  <div class="row">
+    <button class="btn btn-ghost btn-icon sidebar-toggle" id="nav-toggle"
+            aria-label="Toggle navigation" aria-expanded="false">{{ icon('menu', 20) }}</button>
+    <a class="brand" href="{{ url_for('main.dashboard') }}">
+      <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+      <span>{{ app_name }}</span>
+    </a>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-icon" id="theme-toggle" aria-label="Switch theme"
+            data-theme-url="{{ url_for('account.set_theme') }}"
+            data-csrf="{{ csrf_token() }}">
+      <span data-theme-icon="light">{{ icon('moon', 18) }}</span>
+      <span data-theme-icon="dark" hidden>{{ icon('sun', 18) }}</span>
+    </button>
+    <a class="btn btn-ghost btn-icon" href="{{ url_for('main.about') }}" aria-label="About">{{ icon('info', 18) }}</a>
+    <a class="btn btn-ghost btn-icon" href="{{ url_for('account.settings') }}" aria-label="Your account">
+      {{ avatar(current_user, 'avatar-sm') }}
+    </a>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      {{ confirm_form.csrf_token }}
+      <button class="btn btn-ghost btn-icon" type="submit" aria-label="Sign out">{{ icon('logout', 18) }}</button>
+    </form>
+  </div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<nav class="sidebar" id="sidebar" aria-label="Main">
+  <a class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}">
+    {{ icon('dashboard') }} Dashboard
+  </a>
+  <a class="nav-item {{ 'active' if request.endpoint == 'account.settings' }}" href="{{ url_for('account.settings') }}">
+    {{ icon('settings') }} Settings
+  </a>
+  <a class="nav-item {{ 'active' if request.endpoint == 'main.about' }}" href="{{ url_for('main.about') }}">
+    {{ icon('info') }} About
+  </a>
+
+  <div class="nav-label">Your groups</div>
+  <a class="nav-item {{ 'active' if request.endpoint == 'groups.new' }}" href="{{ url_for('groups.new') }}">
+    {{ icon('plus') }} New group
+  </a>
+
+  {% for summary in sidebar_groups %}
+  <a class="nav-group {{ 'active' if request.view_args and request.view_args.get('group_id') == summary.group.id }}"
+     href="{{ url_for('groups.detail', group_id=summary.group.id) }}">
+    <span class="name">{{ summary.group.name }}</span>
+    <span class="meta">{{ summary.member_count }} member{{ '' if summary.member_count == 1 else 's' }}</span>
+    <span class="amount {{ 'pos' if summary.net > 0 }}{{ 'neg' if summary.net < 0 }}">
+      {%- if summary.net == 0 -%}
+        <span class="faint">&mdash;</span>
+      {%- else -%}
+        {{ summary.net|abs_money(summary.group.currency) }}
+      {%- endif -%}
+    </span>
+  </a>
+  {% else %}
+  <p class="sidebar-empty">No groups yet. Create one to start splitting.</p>
+  {% endfor %}
+</nav>
+
+<main class="main {% block main_class %}{% endblock %}">
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}

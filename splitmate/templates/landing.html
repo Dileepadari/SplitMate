@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ app_name }} - split shared expenses{% endblock %}
+
+{% block layout %}
+<header class="app-header">
+  <a class="brand" href="{{ url_for('main.index') }}">
+    <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+    <span>{{ app_name }}</span>
+  </a>
+  <div class="header-actions">
+    <a class="btn btn-ghost" href="{{ url_for('main.about') }}">About</a>
+    <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
+    <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Create account</a>
+  </div>
+</header>
+
+<div class="landing">
+  <section class="hero">
+    <h1>Stop doing the maths after every trip.</h1>
+    <p>
+      SplitMate records who paid for what in a group, splits it the way you actually
+      agreed, and works out the fewest payments that clear everyone.
+    </p>
+    <div class="row">
+      <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Get started {{ icon('arrow-right', 16) }}</a>
+      <a class="btn" href="{{ url_for('auth.login') }}">I already have an account</a>
+    </div>
+  </section>
+
+  <section class="feature-grid">
+    <div class="feature">
+      <div class="icon">{{ icon('scale', 19) }}</div>
+      <h3>Three ways to split</h3>
+      <p>Equally, by exact amounts, or by shares when one person had the double room. Cents always add back up to the total.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">{{ icon('handshake', 19) }}</div>
+      <h3>Settle in fewer payments</h3>
+      <p>Instead of one transfer per expense, SplitMate collapses the whole group into at most one payment per person.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">{{ icon('users', 19) }}</div>
+      <h3>Groups that survive people leaving</h3>
+      <p>Add and remove members, hand over ownership, archive a finished trip. Balances have to reach zero before anyone walks away.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">{{ icon('download', 19) }}</div>
+      <h3>Your data, exportable</h3>
+      <p>Every group exports to CSV with its expenses, shares and recorded payments.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

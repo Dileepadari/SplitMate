@@ -1,0 +1,86 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, field, net_badge, post_button %}
+{% block title %}Members of {{ group.name }} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb">
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a> /
+      <a href="{{ url_for('groups.detail', group_id=group.id) }}">{{ group.name }}</a> / Members
+    </div>
+    <h1>Members</h1>
+    <p class="subtitle">Anyone in this group can add expenses and record payments.</p>
+  </div>
+  <a class="btn" href="{{ url_for('groups.detail', group_id=group.id) }}">{{ icon('arrow-left', 16) }} Back to group</a>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head"><h2>Add someone</h2></div>
+  <div class="card-body">
+    <form method="post" novalidate>
+      {{ form.csrf_token }}
+      <div class="row wrap" style="align-items:flex-start">
+        <div class="grow" style="min-width:240px">
+          {{ field(form.identifier, placeholder='username or email',
+                   hint='They need a SplitMate account first.') }}
+        </div>
+        <div style="margin-top:1.55rem">{{ form.submit(class='btn btn-primary') }}</div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>{{ group.members|length }} in this group</h2>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Member</th><th>Role</th><th>Joined</th><th class="num">Balance</th><th></th></tr></thead>
+      <tbody>
+        {% for m in group.members %}
+        <tr>
+          <td>
+            <span class="row">
+              {{ avatar(m.user) }}
+              <span>
+                <div class="strong">
+                  {{ m.user.full_name }}
+                  {% if m.user_id == current_user.id %}<span class="badge badge-accent">you</span>{% endif %}
+                </div>
+                <div class="tiny muted">@{{ m.user.username }}</div>
+              </span>
+            </span>
+          </td>
+          <td>
+            <span class="badge {{ 'badge-accent' if m.role.value == 'owner' }}">{{ m.role.value }}</span>
+          </td>
+          <td class="muted small nowrap">{{ m.joined_at.date()|day }}</td>
+          <td class="num">{{ net_badge(balances.get(m.user_id, 0), group.currency) }}</td>
+          <td class="num">
+            <div class="row" style="justify-content:flex-end">
+              {% if is_owner and m.user_id != current_user.id %}
+                {{ post_button(url_for('groups.promote_member', group_id=group.id, user_id=m.user_id),
+                               'Make member' if m.role.value == 'owner' else 'Make owner',
+                               confirm_form, 'btn btn-sm btn-ghost') }}
+                {{ post_button(url_for('groups.remove_member', group_id=group.id, user_id=m.user_id),
+                               'Remove', confirm_form, 'btn btn-sm btn-danger',
+                               'Remove ' ~ m.user.full_name ~ ' from ' ~ group.name ~ '?') }}
+              {% elif m.user_id == current_user.id %}
+                {{ post_button(url_for('groups.leave', group_id=group.id), 'Leave', confirm_form,
+                               'btn btn-sm btn-danger', 'Leave ' ~ group.name ~ '?') }}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-foot tiny muted">
+    A member can only be removed once their balance reaches zero, so no debt disappears with them.
+  </div>
+</div>
+{% endblock %}

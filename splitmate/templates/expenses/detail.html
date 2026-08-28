@@ -1,0 +1,105 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, post_button %}
+{% block title %}{{ expense.description }} - {{ app_name }}{% endblock %}
+{% block main_class %}main-narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="breadcrumb">
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a> /
+      <a href="{{ url_for('groups.detail', group_id=group.id) }}">{{ group.name }}</a> / Expense
+    </div>
+    <h1>{{ expense.description }}</h1>
+    <p class="subtitle">
+      {{ expense.spent_at|day }} &middot; paid by {{ expense.payer.full_name }}
+      &middot; <span class="badge">{{ expense.category }}</span>
+    </p>
+  </div>
+  <div class="row">
+    <a class="btn" href="{{ url_for('expenses.edit', group_id=group.id, expense_id=expense.id) }}">
+      {{ icon('edit', 16) }} Edit
+    </a>
+    {% if expense.payer_id == current_user.id or group.is_owner(current_user.id) %}
+    {{ post_button(url_for('expenses.delete', group_id=group.id, expense_id=expense.id),
+                   'Delete', confirm_form, 'btn btn-danger',
+                   'Delete ' ~ expense.description ~ '?') }}
+    {% endif %}
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat stat-accent">
+    <div class="label">Total</div>
+    <div class="value">{{ expense.amount|money(group.currency) }}</div>
+    <div class="hint">split {{ expense.split_type.value }} between {{ expense.shares|length }}</div>
+  </div>
+  {% set mine = expense.share_for(current_user.id) %}
+  <div class="stat {{ 'stat-neg' if mine and expense.payer_id != current_user.id }}">
+    <div class="label">Your share</div>
+    <div class="value">{{ mine|money(group.currency) }}</div>
+    <div class="hint">
+      {% if expense.payer_id == current_user.id %}you paid the whole bill
+      {% elif mine %}you owe this to {{ expense.payer.display_name }}
+      {% else %}you are not part of this split{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head"><h2>Split breakdown</h2></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Person</th>
+          {% if expense.split_type.value == 'shares' %}<th class="num">Shares</th>{% endif %}
+          <th class="num">Owes</th>
+          <th class="num">Net effect</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in expense.shares %}
+        <tr>
+          <td>
+            <span class="row">
+              {{ avatar(s.user, 'avatar-sm') }}
+              <span>
+                {{ s.user.full_name }}
+                {% if s.user_id == expense.payer_id %}<span class="badge badge-accent">paid</span>{% endif %}
+              </span>
+            </span>
+          </td>
+          {% if expense.split_type.value == 'shares' %}<td class="num mono">{{ s.weight }}</td>{% endif %}
+          <td class="num mono">{{ s.amount|money(group.currency) }}</td>
+          <td class="num mono {{ 'pos' if s.user_id == expense.payer_id else 'neg' }}">
+            {% if s.user_id == expense.payer_id %}
+              +{{ (expense.amount - s.amount)|money(group.currency) }}
+            {% else %}
+              -{{ s.amount|money(group.currency) }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if expense.payer_id not in expense.shares|map(attribute='user_id')|list %}
+        <tr>
+          <td><span class="row">{{ avatar(expense.payer, 'avatar-sm') }} {{ expense.payer.full_name }}
+              <span class="badge badge-accent">paid</span></span></td>
+          {% if expense.split_type.value == 'shares' %}<td class="num">-</td>{% endif %}
+          <td class="num mono">{{ 0|money(group.currency) }}</td>
+          <td class="num mono pos">+{{ expense.amount|money(group.currency) }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if expense.notes %}
+<div class="card">
+  <div class="card-head"><h2>Notes</h2></div>
+  <div class="card-body"><p style="white-space:pre-wrap">{{ expense.notes }}</p></div>
+</div>
+{% endif %}
+{% endblock %}

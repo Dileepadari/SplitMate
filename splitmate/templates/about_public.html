@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}About - {{ app_name }}{% endblock %}
+
+{% block layout %}
+<header class="app-header">
+  <a class="brand" href="{{ url_for('main.index') }}">
+    <span class="logo-badge"><img src="{{ url_for('static', filename='img/logo-mark.png') }}" alt=""></span>
+    <span>{{ app_name }}</span>
+  </a>
+  <div class="header-actions">
+    <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
+    <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Create account</a>
+  </div>
+</header>
+<main class="main main-narrow" style="margin-left:0">
+  {% include "partials/about_body.html" %}
+</main>
+{% endblock %}

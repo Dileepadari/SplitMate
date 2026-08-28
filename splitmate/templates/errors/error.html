@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} - {{ app_name }}{% endblock %}
+
+{% block layout %}
+<div class="error-page">
+  <div>
+    <div class="code">{{ code }}</div>
+    <h1 class="mt-1">{{ title }}</h1>
+    <p class="muted mt-1">{{ message }}</p>
+    <div class="row mt-2" style="justify-content:center">
+      <a class="btn btn-primary" href="{{ url_for('main.index') }}">Back to SplitMate</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

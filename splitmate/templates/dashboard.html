@@ -1,0 +1,133 @@
+{% extends "shell.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/ui.html" import avatar, empty_state %}
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Hey, {{ current_user.display_name }}.</h1>
+    <p class="subtitle">
+      {% if totals.net == 0 %}
+        Everything is square right now.
+      {% elif totals.net > 0 %}
+        Overall you are up {{ totals.net|abs_money(user_currency) }}.
+      {% else %}
+        Overall you are down {{ totals.net|abs_money(user_currency) }}.
+      {% endif %}
+    </p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('groups.new') }}">{{ icon('plus', 16) }} New group</a>
+</div>
+
+<div class="stats">
+  <div class="stat stat-pos">
+    <div class="label">You are owed</div>
+    <div class="value">{{ totals.owed_to_you|money(user_currency) }}</div>
+    <div class="hint">across {{ summaries|selectattr('net', 'gt', 0)|list|length }} group(s)</div>
+  </div>
+  <div class="stat stat-neg">
+    <div class="label">You owe</div>
+    <div class="value">{{ totals.you_owe|money(user_currency) }}</div>
+    <div class="hint">across {{ summaries|selectattr('net', 'lt', 0)|list|length }} group(s)</div>
+  </div>
+  <div class="stat stat-accent">
+    <div class="label">Net position</div>
+    <div class="value {{ 'pos' if totals.net > 0 }}{{ 'neg' if totals.net < 0 }}">
+      {{ totals.net|money(user_currency) }}
+    </div>
+    <div class="hint">{{ summaries|length }} active group(s)</div>
+  </div>
+</div>
+
+<div class="card mb-1">
+  <div class="card-head">
+    <h2>Your groups</h2>
+    <a class="btn btn-sm" href="{{ url_for('groups.new') }}">{{ icon('plus', 15) }} Add</a>
+  </div>
+  {% if summaries %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Group</th>
+          <th>Members</th>
+          <th class="num">Total spend</th>
+          <th class="num">Your balance</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in summaries %}
+        <tr>
+          <td>
+            <div class="strong">{{ s.group.name }}</div>
+            {% if s.group.description %}<div class="tiny muted">{{ s.group.description }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="avatar-stack">
+              {% for member in s.group.members[:5] %}{{ avatar(member.user, 'avatar-sm') }}{% endfor %}
+            </div>
+          </td>
+          <td class="num mono">{{ s.total_spend|money(s.group.currency) }}</td>
+          <td class="num mono {{ 'pos' if s.net > 0 }}{{ 'neg' if s.net < 0 }}">
+            {% if s.net == 0 %}<span class="faint">settled</span>{% else %}{{ s.net|money(s.group.currency) }}{% endif %}
+          </td>
+          <td class="num">
+            <a class="btn btn-sm" href="{{ url_for('groups.detail', group_id=s.group.id) }}">Open</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty_state('wallet', 'No groups yet',
+      'A group is a set of people who share costs: a trip, a flat, a dinner club.',
+      url_for('groups.new'), 'Create your first group') }}
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Recent activity</h2></div>
+  {% if activity %}
+  <div>
+    {% for item in activity %}
+    <a class="list-row" href="{{ url_for('groups.detail', group_id=item.group.id) }}">
+      <span class="cat-icon">
+        {{ icon('handshake', 17) if not item.is_expense else icon(item.obj.category|category_icon, 17) }}
+      </span>
+      <span class="grow">
+        <div class="title">{{ item.title }}</div>
+        <div class="sub">
+          {{ item.group.name }} &middot; {{ item.when|day }}
+          {%- if item.is_expense %} &middot; paid by {{ item.actor.display_name }}{% endif %}
+        </div>
+      </span>
+      <span class="mono nowrap">{{ item.amount|money(item.group.currency) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><p>Nothing recorded yet. Add an expense in a group and it shows up here.</p></div>
+  {% endif %}
+</div>
+
+{% if archived %}
+<div class="card mt-2">
+  <div class="card-head"><h2>Archived</h2></div>
+  <div>
+    {% for s in archived %}
+    <a class="list-row" href="{{ url_for('groups.detail', group_id=s.group.id) }}">
+      <span class="cat-icon">{{ icon('archive', 17) }}</span>
+      <span class="grow">
+        <div class="title">{{ s.group.name }}</div>
+        <div class="sub">{{ s.expense_count }} expense(s) &middot; {{ s.member_count }} member(s)</div>
+      </span>
+      <span class="mono nowrap">{{ s.net|money(s.group.currency) }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
