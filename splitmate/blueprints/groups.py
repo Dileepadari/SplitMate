@@ -308,6 +308,32 @@ def delete_settlement(group_id: int, settlement_id: int):
 # -- export ---------------------------------------------------------------
 
 
+
+#: Characters that make a spreadsheet treat a cell as a formula rather than text.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value) -> str:
+    """Stop a cell being run as a formula when the export is opened.
+
+    Descriptions, notes and usernames are written by group members, and Excel,
+    LibreOffice and Sheets all execute a cell beginning ``=``, ``+``, ``-`` or
+    ``@``. So one member typing ``=HYPERLINK(...)`` as an expense description
+    attacks whoever opens the file. Prefixing with an apostrophe is the standard
+    answer: the spreadsheet shows the original text and does not evaluate it.
+
+    Numbers are left alone, otherwise every negative amount would arrive as text.
+    """
+    text = "" if value is None else str(value)
+    if not text.startswith(_FORMULA_PREFIXES):
+        return text
+    try:
+        Decimal(text)
+    except (ArithmeticError, ValueError):
+        return "'" + text
+    return text
+
+
 @bp.route("/<int:group_id>/export.csv")
 @login_required
 def export_csv(group_id: int):
@@ -320,7 +346,8 @@ def export_csv(group_id: int):
     for expense in sorted(group.expenses, key=lambda e: e.spent_at):
         shares = "; ".join(f"{s.user.username}={s.amount}" for s in expense.shares)
         writer.writerow(
-            [
+            _csv_safe(cell)
+            for cell in (
                 "expense",
                 expense.spent_at.isoformat(),
                 expense.description,
@@ -329,11 +356,12 @@ def export_csv(group_id: int):
                 f"{expense.amount}",
                 group.currency,
                 shares,
-            ]
+            )
         )
     for settlement in sorted(group.settlements, key=lambda s: s.settled_at):
         writer.writerow(
-            [
+            _csv_safe(cell)
+            for cell in (
                 "settlement",
                 settlement.settled_at.isoformat(),
                 settlement.note or "Payment",
@@ -342,7 +370,7 @@ def export_csv(group_id: int):
                 f"{settlement.amount}",
                 group.currency,
                 f"{settlement.to_user.username}={settlement.amount}",
-            ]
+            )
         )
 
     slug = "".join(c if c.isalnum() else "-" for c in group.name).strip("-").lower() or "group"
