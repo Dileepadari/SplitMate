@@ -37,28 +37,68 @@ payments and never loses a cent to rounding.
 
 ## Screenshots
 
-Real renders against a running instance with the demo data seeded. This page shows
-**dark mode**; the same gallery in light mode is at **[README-light.md](./README-light.md)**.
+Every image is a real 1440x900 viewport render of the app against the seeded demo data. This page shows **dark mode**; the same gallery in light mode is at **[README-light.md](./README-light.md)**.
 
-| | |
-|---|---|
-| **Dashboard** <br> Every group you are in, what you are owed and what you owe, and recent activity across all of them <br><br> <img src="docs/screenshots/dark/01-dashboard.png" alt="Dashboard: totals owed and owing, group list and recent activity" loading="lazy"> | **Inside a group** <br> Who owes whom, reduced to the fewest payments that clear everyone, above the ledger it came from <br><br> <img src="docs/screenshots/dark/02-group.png" alt="Group page: suggested payments and the balance table behind them" loading="lazy"> |
-| **Adding an expense** <br> Split by shares: a 2 pays twice what a 1 pays, and the amounts always add back up to the total <br><br> <img src="docs/screenshots/dark/03-add-expense.png" alt="Add expense: weighted share split with live per-person amounts" loading="lazy"> | **Settling up** <br> The same suggested payments, each one click away from being recorded <br><br> <img src="docs/screenshots/dark/04-settle-up.png" alt="Settle up: suggested payments and the record-a-payment form" loading="lazy"> |
-| **Members** <br> Roles, join dates and balances. Nobody leaves while they still owe or are owed <br><br> <img src="docs/screenshots/dark/05-members.png" alt="Members: roles, balances and the add-member form" loading="lazy"> | **One expense** <br> What each person's share was and what it did to their balance <br><br> <img src="docs/screenshots/dark/06-expense.png" alt="Expense detail: the split breakdown and each person's net effect" loading="lazy"> |
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/01-dashboard.png" alt="Dashboard: totals owed and owing, the group list and recent activity" loading="lazy">
+      <p align="center"><b>Dashboard</b><br><sub>Every group, what you are owed and what you owe, and recent activity.</sub></p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/02-group.png" alt="Group page: suggested payments above the balance table they came from" loading="lazy">
+      <p align="center"><b>Inside a group</b><br><sub>Who owes whom, above the ledger those numbers came from.</sub></p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/03-add-expense.png" alt="Add expense: a weighted share split with live per-person amounts" loading="lazy">
+      <p align="center"><b>Adding an expense</b><br><sub>Split by shares: a 2 pays twice what a 1 pays, live as you type.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/04-settle-up.png" alt="Settle up: suggested payments and the record-a-payment form" loading="lazy">
+      <p align="center"><b>Settling up</b><br><sub>The suggested payments, each one click from being recorded.</sub></p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/05-members.png" alt="Members: roles, join dates, balances and the add-member form" loading="lazy">
+      <p align="center"><b>Members</b><br><sub>Roles, join dates and balances. Nobody leaves owing anything.</sub></p>
+    </td>
+    <td width="33%" valign="top">
+      <img src="./docs/screenshots/dark/06-expense.png" alt="Expense detail: the split breakdown and each person's net effect" loading="lazy">
+      <p align="center"><b>One expense</b><br><sub>Each person's share and what it did to their balance.</sub></p>
+    </td>
+  </tr>
+</table>
 
-<p align="center"><b>Settings</b> &middot; profile, password and the currency your totals are shown in</p>
-<p align="center"><img src="docs/screenshots/dark/07-settings.png" alt="Settings: profile form and preferred currency" loading="lazy"></p>
+<details>
+<summary><b>Settings</b></summary>
+<br>
+<img src="./docs/screenshots/dark/07-settings.png" alt="Settings with profile, password and preferred currency" loading="lazy">
+</details>
 
 ## Responsive layout
 
 Above 1080px the forms and the expense page use two columns, so a whole expense fits on one
-screen without scrolling. Below that everything stacks: the sidebar collapses behind the
-menu button, the summary cards go one per row, and the wider tables scroll sideways inside
-their own card rather than squeezing their columns or pushing the page out.
+screen without scrolling. Below that everything stacks: the sidebar collapses behind the menu
+button, the summary cards go one per row, and the wider tables scroll sideways inside their own
+card rather than squeezing their columns or pushing the page out.
 
-| Phone, 390px | Phone, 390px | Tablet, 820px |
-|---|---|---|
-| <img src="docs/screenshots/responsive/mobile-dashboard.png" alt="Dashboard on a phone" loading="lazy"> | <img src="docs/screenshots/responsive/mobile-group.png" alt="Group page on a phone" loading="lazy"> | <img src="docs/screenshots/responsive/tablet-group.png" alt="Group page on a tablet" loading="lazy"> |
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <img src="./docs/screenshots/responsive/mobile-dashboard.png" alt="Dashboard at 390px wide" loading="lazy">
+      <p align="center"><sub><b>Dashboard</b><br>390 x 844</sub></p>
+    </td>
+    <td width="25%" valign="top">
+      <img src="./docs/screenshots/responsive/mobile-group.png" alt="Group page at 390px wide" loading="lazy">
+      <p align="center"><sub><b>Inside a group</b><br>390 x 844</sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="./docs/screenshots/responsive/tablet-group.png" alt="Group page at 820px wide" loading="lazy">
+      <p align="center"><sub><b>Inside a group</b><br>820 x 1180</sub></p>
+    </td>
+  </tr>
+</table>
 
 ---
 
