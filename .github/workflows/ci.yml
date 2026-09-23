@@ -97,6 +97,39 @@ jobs:
           echo "the app never answered"
           exit 1
 
+  readme-pair:
+    name: README-light.md is in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # README-light.md is generated, never hand-edited. Regenerate it and fail
+      # if the committed copy differs, so the two pages cannot drift apart when
+      # only one of them is updated.
+      - name: Regenerate and compare
+        run: |
+          python3 scripts/build_light_readme.py
+          git diff --exit-code README-light.md
+
+      # An <img src> pointing at a file nobody committed renders as a broken
+      # image on github.com and nowhere else, so nothing else would catch it.
+      - name: Every local image referenced by either README exists
+        run: |
+          missing=0
+          for f in $(grep -ho 'src="[^"]*"' README.md README-light.md \
+                     | sed 's/^src="//; s/"$//' | grep -v '^https\?://' | sort -u); do
+            if [ ! -f "$f" ]; then
+              echo "missing: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] || exit 1
+          echo "every referenced image exists"
+
   secrets:
     name: No database or env file is committed
     runs-on: ubuntu-latest

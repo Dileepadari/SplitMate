@@ -12,6 +12,8 @@ see [README.md](./README.md).
 - [Data model](#data-model)
 - [Money handling](#money-handling)
 - [Balance and settle-up algorithm](#balance-and-settle-up-algorithm)
+- [Continuous integration](#continuous-integration)
+- [Security notes](#security-notes)
 - [Route surface](#route-surface)
 - [Theming](#theming)
 - [Project structure](#project-structure)
@@ -20,6 +22,7 @@ see [README.md](./README.md).
 - [Local development](#local-development)
 - [Deployment](#deployment)
 - [Known constraints and gotchas](#known-constraints-and-gotchas)
+- [Contributing conventions](#contributing-conventions)
 
 ## Tech stack
 
@@ -64,6 +67,30 @@ Blueprints hold no arithmetic. Anything that computes a number lives in `service
 importable without an app context, which is why the money and balance tests need no HTTP
 layer at all.
 
+The path a mutating request takes, and the four places it can be turned away:
+
+```mermaid
+flowchart TD
+    A[POST from a form] --> B{CSRF token valid?}
+    B -- no --> X1[400]
+    B -- yes --> C{Signed in?}
+    C -- no --> X2[Redirect to /login]
+    C -- yes --> D{Member of this group?}
+    D -- no --> X3["404, not 403:<br/>do not confirm the id exists"]
+    D -- yes --> E{Owner-only route?}
+    E -- "yes, and not an owner" --> X4[403]
+    E -- otherwise --> F[WTForms field validation]
+    F -- invalid --> G[Re-render with field errors]
+    F -- valid --> H["services/: build_shares, quantize"]
+    H -- SplitResult.errors --> G
+    H -- ok --> I[Write, commit, flash, redirect]
+```
+
+The two validation layers are not redundant. WTForms checks one field at a time and knows
+nothing about the group; `build_shares` checks the things that only make sense together,
+such as whether the exact amounts add up to the total and whether every participant is
+still a member.
+
 ## Auth model
 
 Sessions are cookie-based via Flask-Login. `login_user` writes the user id into Flask's
@@ -84,6 +111,64 @@ Authorisation is separate from authentication and lives in `access.py`:
 - `get_expense_or_404` additionally checks the expense belongs to the group in the URL, so `/groups/1/expenses/999` cannot reach another group's expense.
 
 ## Data model
+
+```mermaid
+erDiagram
+    USERS ||--o{ GROUP_MEMBERS : "belongs to"
+    GROUPS ||--o{ GROUP_MEMBERS : has
+    GROUPS ||--o{ EXPENSES : contains
+    GROUPS ||--o{ SETTLEMENTS : contains
+    USERS ||--o{ EXPENSES : "paid for"
+    EXPENSES ||--o{ EXPENSE_SHARES : "divided into"
+    USERS ||--o{ EXPENSE_SHARES : owes
+    USERS ||--o{ SETTLEMENTS : "sent and received"
+
+    USERS {
+        int id PK
+        string username UK
+        string email UK
+        string password_hash
+        string currency
+    }
+    GROUPS {
+        int id PK
+        string name
+        string currency
+        bool archived
+    }
+    GROUP_MEMBERS {
+        int id PK
+        int user_id FK
+        int group_id FK
+        enum role "owner or member"
+    }
+    EXPENSES {
+        int id PK
+        int group_id FK
+        int payer_id FK
+        numeric amount "12,2"
+        enum split_type "equal, exact, shares"
+        date spent_at
+    }
+    EXPENSE_SHARES {
+        int id PK
+        int expense_id FK
+        int user_id FK
+        numeric amount "12,2"
+        int weight
+    }
+    SETTLEMENTS {
+        int id PK
+        int group_id FK
+        int from_user_id FK
+        int to_user_id FK
+        numeric amount "12,2"
+        date settled_at
+    }
+```
+
+`EXPENSE_SHARES` is unique on `(expense_id, user_id)`, which is the constraint behind the
+`apply_shares` note under [Known constraints](#known-constraints-and-gotchas).
 
 All datetime columns store timezone-aware UTC (`models.utcnow`). `spent_at` and `settled_at`
 are plain dates, because "which day was this expense" is a calendar fact, not an instant.
@@ -214,6 +299,64 @@ This is intentionally *not* the NP-hard minimum-transaction problem. The greedy 
 optimal in the common case and always correct; chasing the theoretical minimum for
 pathological share structures is not worth the complexity here.
 
+### How simplification runs
+
+```mermaid
+flowchart LR
+    A[Balance per member] --> B["Split into creditors (net > 0)<br/>and debtors (net &lt; 0)"]
+    B --> C[Sort both by size, largest first]
+    C --> D[Match the largest debtor<br/>against the largest creditor]
+    D --> E["Transfer = min(debt, credit)"]
+    E --> F{Either side cleared?}
+    F -- debtor cleared --> G[Advance the debtor pointer]
+    F -- creditor cleared --> H[Advance the creditor pointer]
+    G --> I{Both lists exhausted?}
+    H --> I
+    I -- no --> D
+    I -- yes --> J["At most n-1 transfers"]
+```
+
+## Continuous integration
+
+`.github/workflows/ci.yml`, on push to `main`, on every pull request, and on demand
+(`workflow_dispatch`). There is no scheduled run.
+
+| Job | What it proves |
+|---|---|
+| `test` | `ruff check` and the full suite on Python 3.11 and 3.13, with a coverage floor of 85% |
+| `audit` | `pip-audit --strict` against `requirements.txt`. `--strict` so a database that fails to load is an error, not a pass |
+| `boot` | Applies every migration to an empty database, seeds it, starts gunicorn and fetches `/login`. The suite calls `create_all()`, so nothing else would notice a migration that does not apply |
+| `readme-pair` | Regenerates `README-light.md` and fails on a diff, and checks every locally referenced image exists |
+| `secrets` | Fails if any `*.db`, `*.sqlite`, `*.sqlite3` or `.env` is tracked |
+| `hygiene` | Fails on an em dash, en dash, arrow or dingbat in any tracked file |
+
+The `secrets` job exists because a SQLite file was tracked in this repository from 2023 to
+2026 with seven accounts' passwords in clear text inside it. `.gitignore` does not stop
+`git add -f`, so the rule is enforced rather than written down.
+
+The ruff rule set is pinned in `pyproject.toml` and the ruff version in
+`requirements-dev.txt`. Without both, `ruff check` means whatever the installed release
+defaults to, and the same code lints clean locally and fails in CI.
+
+## Security notes
+
+| Concern | How it is handled |
+|---|---|
+| Password storage | `werkzeug.security.generate_password_hash` (scrypt). Nothing stores a plain password |
+| Session | Signed cookie, `HttpOnly`, `SameSite=Lax`, `Secure` in production. Production refuses to boot on the default `SECRET_KEY` |
+| CSRF | Flask-WTF on every form, including the bare `ConfirmForm` behind each destructive button |
+| Authorization | `access.py`. A non-member gets 404 rather than 403, so group ids are not confirmed to strangers |
+| Open redirect | `_safe_next` only follows a `next` that starts with a single `/` |
+| User enumeration | A wrong password and an unknown account give the same message. Adding a member reports a miss and a hit through the same form error |
+| SQL injection | SQLAlchemy Core and ORM throughout; no string-built SQL |
+| XSS | Jinja autoescaping, no `|safe` anywhere in the templates |
+| CSV injection | `_csv_safe` prefixes any cell that begins `=`, `+`, `-`, `@`, tab or CR, unless it parses as a number |
+| Amount parsing | `is_usable_amount` rejects `NaN`, infinities and anything past the column ceiling before they reach `quantize` |
+
+Known and accepted: there is no rate limiting on `/login`, and no account lockout. For a
+single-instance app with no password reset flow that is a deliberate scope choice, not an
+oversight; put a rate limiter in the reverse proxy if this is ever exposed.
+
 ## Route surface
 
 | Method | Path | Who | Purpose |
@@ -310,12 +453,13 @@ wsgi.py                entry point
 ## Testing
 
 ```bash
-.venv/bin/pytest                              # 95 tests
+.venv/bin/pytest                              # 182 tests
 .venv/bin/pytest --cov=splitmate --cov-report=term-missing
 ```
 
 Tests run against an in-memory SQLite database with CSRF disabled (`TestingConfig`). Each
-test gets a fresh schema through the `app` fixture. Coverage is around 93%.
+test gets a fresh schema through the `app` fixture. Coverage is around 95%, and CI fails
+below 85%.
 
 | File | Covers |
 |---|---|
@@ -326,6 +470,10 @@ test gets a fresh schema through the `app` fixture. Coverage is around 93%.
 | `test_groups.py` | Group lifecycle, membership, permissions, settling, CSV export, filters |
 | `test_expenses.py` | Expense CRUD over HTTP, split correctness, validation, delete permissions |
 | `test_account.py` | Profile, password, theme, account deletion guards |
+| `test_amount_input.py` | Everything `Decimal` accepts that this app cannot store: `NaN`, infinities, huge exponents, and a comma used as a decimal point |
+| `test_expense_dates.py` | The "not in the future" rule, judged against UTC rather than the server clock |
+| `test_csv_export.py` | Formula injection through a member-supplied description or note |
+| `test_docstrings.py` | Every module and public definition carries a docstring |
 
 `tests/factories.py` holds `make_user`, `make_group` and `add_expense`. `add_expense`
 asserts the split is valid, so a broken split fails loudly in the factory rather than
@@ -443,3 +591,24 @@ without affecting what is stored.
 **`instance/` is gitignored, including the database.** A fresh clone has no database. Run
 `flask db upgrade` before the first start or the app raises `no such table` on the first
 query.
+
+## Contributing conventions
+
+- **Comments and docstrings**: `docs/COMMENT_STYLE.md`. Every module and every public
+  definition carries a docstring, and `tests/test_docstrings.py` fails the build otherwise.
+- **Arithmetic belongs in `services/`.** If a blueprint computes a number, it is in the
+  wrong place: the services are importable without an app context, which is what keeps the
+  money tests free of HTTP.
+- **A fix that came from a bug gets a test whose docstring says what the bug was**, so
+  nobody later deletes it as redundant.
+- **Plain ASCII everywhere.** No em dashes, en dashes, arrows or dingbats, in prose, code,
+  templates, interface strings or commit messages. Note that this is about the characters
+  in the file, not the glyph on screen: an HTML entity for an em dash is pure ASCII on
+  disk and still draws the forbidden character, which is how two survived here for years.
+- **Commit messages are one line.**
+- Run before pushing: `ruff check .`, `pytest`, and `python3 scripts/build_light_readme.py`
+  if you touched `README.md`.
+
+---
+
+Working notes, dead ends and decisions too small for this document: [not_for_you.md](./not_for_you.md).
