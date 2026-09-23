@@ -86,6 +86,7 @@ def to_decimal(value, default: Decimal | None = None) -> Decimal | None:
 
 
 def symbol_for(currency: str) -> str:
+    """The symbol for a currency code, or the code itself when it is not one we know."""
     return CURRENCY_SYMBOLS.get((currency or "INR").upper(), f"{currency} ")
 
 

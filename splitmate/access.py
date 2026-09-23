@@ -22,11 +22,17 @@ def get_group_or_404(group_id: int) -> Group:
 
 
 def require_owner(group: Group) -> None:
+    """Abort with 403 unless the signed-in user owns ``group``.
+
+    403 rather than 404 here, because membership was already established by
+    :func:`get_group_or_404`: the user knows the group exists.
+    """
     if not group.is_owner(current_user.id):
         abort(403)
 
 
 def get_expense_or_404(group: Group, expense_id: int) -> Expense:
+    """Fetch an expense, checking it belongs to ``group`` and not merely that it exists."""
     expense = db.session.get(Expense, expense_id)
     if expense is None or expense.group_id != group.id:
         abort(404)

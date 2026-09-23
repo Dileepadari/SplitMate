@@ -11,6 +11,8 @@ from ..models import Expense, Group, Settlement, User
 
 @dataclass(frozen=True)
 class ActivityItem:
+    """One entry in a feed: an expense or a settlement, flattened to the same shape."""
+
     kind: str  # "expense" or "settlement"
     when: date
     group: Group
@@ -21,6 +23,7 @@ class ActivityItem:
 
     @property
     def is_expense(self) -> bool:
+        """Which of the two it is, so a template does not compare strings."""
         return self.kind == "expense"
 
 
@@ -49,6 +52,11 @@ def _from_settlement(settlement: Settlement) -> ActivityItem:
 
 
 def group_activity(group: Group, limit: int | None = None) -> list[ActivityItem]:
+    """Expenses and settlements in one list, newest first.
+
+    Sorted by the date the user gave, then by creation time, so several entries
+    dated the same day still come out in the order they were added.
+    """
     items = [_from_expense(e) for e in group.expenses]
     items += [_from_settlement(s) for s in group.settlements]
     items.sort(key=lambda i: (i.when, i.obj.created_at), reverse=True)

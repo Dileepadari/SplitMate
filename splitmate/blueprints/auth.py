@@ -22,6 +22,11 @@ def _safe_next(target: str | None) -> str:
 
 @bp.route("/register", methods=["GET", "POST"])
 def register():
+    """Create an account, then sign the new user straight in.
+
+    Username and email are checked in one query so the form can say which of the
+    two is taken, and the username comparison is case-insensitive.
+    """
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
 
@@ -60,6 +65,11 @@ def register():
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    """Sign in with either the username or the email address.
+
+    A wrong password and an account that does not exist give the same message on
+    purpose: telling them apart is a way to find out who has an account here.
+    """
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
 
@@ -86,6 +96,7 @@ def login():
 @bp.post("/logout")
 @login_required
 def logout():
+    """Sign out. POST only, so a link in an email cannot sign someone out."""
     logout_user()
     flash("Signed out.", "info")
     return redirect(url_for("auth.login"))

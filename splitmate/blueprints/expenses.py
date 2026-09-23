@@ -15,6 +15,7 @@ bp = Blueprint("expenses", __name__, url_prefix="/groups/<int:group_id>/expenses
 
 
 def _member_choices(group):
+    """Members as ``(id, name)`` pairs, which is also what limits who can be named as payer."""
     return [(m.user_id, m.user.full_name) for m in group.members]
 
 
@@ -36,6 +37,12 @@ def _selected_state(group, expense: Expense | None):
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new(group_id: int):
+    """Add an expense to a group.
+
+    Participants, exact amounts and weights are read from the raw form rather
+    than through WTForms, because how many fields there are depends on how many
+    members the group has.
+    """
     group = get_group_or_404(group_id)
     if not group.members:
         abort(404)
@@ -87,6 +94,7 @@ def new(group_id: int):
 @bp.route("/<int:expense_id>")
 @login_required
 def detail(group_id: int, expense_id: int):
+    """One expense and how it was divided."""
     group = get_group_or_404(group_id)
     expense = get_expense_or_404(group, expense_id)
     return render_template("expenses/detail.html", group=group, expense=expense)
@@ -95,6 +103,12 @@ def detail(group_id: int, expense_id: int):
 @bp.route("/<int:expense_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(group_id: int, expense_id: int):
+    """Change an expense. Any member may edit, and the shares are rebuilt from scratch.
+
+    ``apply_shares`` updates the existing rows in place rather than deleting and
+    reinserting them, which would put two rows for the same participant in one
+    flush and trip the unique constraint.
+    """
     group = get_group_or_404(group_id)
     expense = get_expense_or_404(group, expense_id)
 
@@ -142,6 +156,7 @@ def edit(group_id: int, expense_id: int):
 @bp.post("/<int:expense_id>/delete")
 @login_required
 def delete(group_id: int, expense_id: int):
+    """Delete an expense. Its payer may remove their own; owners may remove any."""
     group = get_group_or_404(group_id)
     expense = get_expense_or_404(group, expense_id)
     if not ConfirmForm().validate_on_submit():

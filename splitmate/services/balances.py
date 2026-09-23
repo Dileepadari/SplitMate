@@ -32,14 +32,17 @@ class Balance:
 
     @property
     def net(self) -> Decimal:
+        """Positive when the group owes this member, negative when they owe the group."""
         return quantize(self.paid - self.owed + self.settled_out - self.settled_in)
 
     @property
     def is_creditor(self) -> bool:
+        """They are owed money."""
         return self.net > ZERO
 
     @property
     def is_debtor(self) -> bool:
+        """They owe money."""
         return self.net < ZERO
 
 
@@ -130,10 +133,12 @@ class GroupSummary:
 
     @property
     def owed_to_me(self) -> Decimal:
+        """The credit side of the net, or zero. Kept separate so the dashboard can show both."""
         return self.net if self.net > ZERO else ZERO
 
     @property
     def i_owe(self) -> Decimal:
+        """The debit side of the net, unsigned, or zero."""
         return -self.net if self.net < ZERO else ZERO
 
 
@@ -166,10 +171,12 @@ class Totals:
 
     @property
     def net(self) -> Decimal:
+        """One number for the whole account: positive means ahead overall."""
         return quantize(self.owed_to_you - self.you_owe)
 
 
 def totals_for(summaries: list[GroupSummary]) -> Totals:
+    """Add the two sides up across every group, for the dashboard header."""
     return Totals(
         owed_to_you=quantize(sum((s.owed_to_me for s in summaries), ZERO)),
         you_owe=quantize(sum((s.i_owe for s in summaries), ZERO)),

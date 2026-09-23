@@ -40,6 +40,7 @@ DEMO_EXPENSES = [
 
 
 def register_cli(app: Flask) -> None:
+    """Attach ``init-db``, ``reset-db`` and ``seed-demo`` to the ``flask`` command."""
     @app.cli.command("init-db")
     def init_db() -> None:
         """Create every table. Safe to run repeatedly."""

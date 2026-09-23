@@ -102,6 +102,8 @@ CATEGORY_ICONS = {
 
 
 class RegisterForm(FlaskForm):
+    """Sign up. Uniqueness of the username and email is checked in the view, against the database."""
+
     username = StringField(
         "Username",
         validators=[
@@ -122,6 +124,8 @@ class RegisterForm(FlaskForm):
 
 
 class LoginForm(FlaskForm):
+    """Sign in with either the username or the email address, in one field."""
+
     identifier = StringField("Username or email", validators=[DataRequired()])
     password = PasswordField("Password", validators=[DataRequired()])
     remember = BooleanField("Keep me signed in")
@@ -129,6 +133,8 @@ class LoginForm(FlaskForm):
 
 
 class ProfileForm(FlaskForm):
+    """Name, email, avatar and preferred currency. Shares a page with PasswordForm, so it is prefixed."""
+
     first_name = StringField("First name", validators=[DataRequired(), Length(max=60)])
     last_name = StringField("Last name", validators=[Optional(), Length(max=60)])
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
@@ -138,6 +144,8 @@ class ProfileForm(FlaskForm):
 
 
 class PasswordForm(FlaskForm):
+    """Change a password, confirming the current one first."""
+
     current_password = PasswordField("Current password", validators=[DataRequired()])
     new_password = PasswordField("New password", validators=[DataRequired(), Length(8, 128)])
     confirm = PasswordField(
@@ -148,6 +156,8 @@ class PasswordForm(FlaskForm):
 
 
 class GroupForm(FlaskForm):
+    """Create or rename a group and pick the currency its amounts are in."""
+
     name = StringField("Group name", validators=[DataRequired(), Length(2, 80)])
     description = TextAreaField("Description", validators=[Optional(), Length(max=500)])
     currency = SelectField("Currency", choices=CURRENCY_CHOICES)
@@ -155,6 +165,8 @@ class GroupForm(FlaskForm):
 
 
 class AddMemberForm(FlaskForm):
+    """Add an existing account to a group by username or email."""
+
     identifier = StringField(
         "Username or email", validators=[DataRequired(), Length(max=255)]
     )
@@ -186,11 +198,18 @@ class ExpenseForm(FlaskForm):
     submit = SubmitField("Save expense")
 
     def validate_spent_at(self, field):
+        """Reject a date past :func:`latest_allowed_date`."""
         if field.data and field.data > latest_allowed_date():
             raise ValidationError("The date cannot be in the future.")
 
 
 class SettlementForm(FlaskForm):
+    """Record a payment from one member to another.
+
+    Both person fields are SelectFields whose choices are the group's members,
+    which is what stops a settlement naming somebody outside the group.
+    """
+
     from_user_id = SelectField("Paid by", coerce=int, validators=[DataRequired()])
     to_user_id = SelectField("Paid to", coerce=int, validators=[DataRequired()])
     amount = DecimalField(
@@ -207,10 +226,12 @@ class SettlementForm(FlaskForm):
     submit = SubmitField("Record payment")
 
     def validate_to_user_id(self, field):
+        """A payment needs two different people."""
         if field.data == self.from_user_id.data:
             raise ValidationError("Pick two different people.")
 
     def validate_settled_at(self, field):
+        """Reject a date past :func:`latest_allowed_date`."""
         if field.data and field.data > latest_allowed_date():
             raise ValidationError("The date cannot be in the future.")
 

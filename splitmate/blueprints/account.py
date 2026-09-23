@@ -18,6 +18,11 @@ bp = Blueprint("account", __name__, url_prefix="/account")
 @bp.route("/", methods=["GET", "POST"])
 @login_required
 def settings():
+    """Profile and password, as two forms on one page.
+
+    Both are prefixed so their fields cannot collide, and each is processed only
+    when its own submit button was the one pressed.
+    """
     profile_form = ProfileForm(obj=current_user, prefix="profile")
     password_form = PasswordForm(prefix="password")
 
@@ -82,6 +87,11 @@ def _has_history(group, user_id: int) -> bool:
 @bp.post("/delete")
 @login_required
 def delete():
+    """Close an account, once every balance is zero and no shared group is left.
+
+    The zero-balance rule is the point: deleting someone who still owes money
+    would silently rewrite what everyone else is owed.
+    """
     if not ConfirmForm().validate_on_submit():
         abort(400)
 

@@ -13,6 +13,7 @@ bp = Blueprint("main", __name__)
 
 @bp.route("/")
 def index():
+    """The landing page, or straight to the dashboard for anyone already signed in."""
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
     return render_template("landing.html")
@@ -21,6 +22,11 @@ def index():
 @bp.route("/dashboard")
 @login_required
 def dashboard():
+    """Every group the user belongs to, their running totals and recent activity.
+
+    Archived groups are fetched in a second pass rather than filtered out of the
+    first, so the page can offer them under their own heading.
+    """
     summaries = summaries_for(current_user)
     archived = [s for s in summaries_for(current_user, include_archived=True) if s.group.archived]
     return render_template(
@@ -41,4 +47,5 @@ def about():
 
 @bp.route("/healthz")
 def healthz():
+    """Liveness probe. Deliberately touches nothing, so it answers while the database is down."""
     return {"status": "ok"}

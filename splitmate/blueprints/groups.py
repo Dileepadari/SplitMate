@@ -34,6 +34,7 @@ bp = Blueprint("groups", __name__, url_prefix="/groups")
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new():
+    """Create a group. The creator becomes its first member and its owner."""
     form = GroupForm()
     if request.method == "GET":
         form.currency.data = current_user.currency
@@ -57,6 +58,7 @@ def new():
 @bp.route("/<int:group_id>")
 @login_required
 def detail(group_id: int):
+    """The group page: balances, the suggested transfers and recent activity."""
     group = get_group_or_404(group_id)
     balances = group_balances(group)
     transfers = simplify(balances)
@@ -89,6 +91,11 @@ def detail(group_id: int):
 @bp.route("/<int:group_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(group_id: int):
+    """Rename a group or change its currency. Owners only.
+
+    Changing the currency relabels existing amounts rather than converting them;
+    the numbers were entered in whatever the members were actually spending.
+    """
     group = get_group_or_404(group_id)
     require_owner(group)
 
@@ -107,6 +114,7 @@ def edit(group_id: int):
 @bp.post("/<int:group_id>/archive")
 @login_required
 def archive(group_id: int):
+    """Hide a finished group from the dashboard without deleting anything. Owners only."""
     group = get_group_or_404(group_id)
     require_owner(group)
     if not ConfirmForm().validate_on_submit():
@@ -120,6 +128,7 @@ def archive(group_id: int):
 @bp.post("/<int:group_id>/delete")
 @login_required
 def delete(group_id: int):
+    """Delete a group and everything in it. Owners only, and irreversible."""
     group = get_group_or_404(group_id)
     require_owner(group)
     if not ConfirmForm().validate_on_submit():
@@ -137,6 +146,12 @@ def delete(group_id: int):
 @bp.route("/<int:group_id>/members", methods=["GET", "POST"])
 @login_required
 def members(group_id: int):
+    """List the members and add one by username or email.
+
+    Only people who already have an account can be added, so there is no invite
+    flow and no way to probe which addresses are registered: a miss and a hit
+    both come back through the same form error.
+    """
     group = get_group_or_404(group_id)
     form = AddMemberForm()
 
@@ -192,6 +207,7 @@ def _remove_member(group: Group, user_id: int) -> str | None:
 @bp.post("/<int:group_id>/members/<int:user_id>/remove")
 @login_required
 def remove_member(group_id: int, user_id: int):
+    """Detach another member. Owners only; removing yourself goes through ``leave``."""
     group = get_group_or_404(group_id)
     require_owner(group)
     if not ConfirmForm().validate_on_submit():
@@ -207,6 +223,7 @@ def remove_member(group_id: int, user_id: int):
 @bp.post("/<int:group_id>/members/<int:user_id>/promote")
 @login_required
 def promote_member(group_id: int, user_id: int):
+    """Toggle a member between owner and member. Owners only."""
     group = get_group_or_404(group_id)
     require_owner(group)
     if not ConfirmForm().validate_on_submit():
@@ -225,6 +242,7 @@ def promote_member(group_id: int, user_id: int):
 @bp.post("/<int:group_id>/leave")
 @login_required
 def leave(group_id: int):
+    """Leave a group, provided your balance is zero and you are not the last member."""
     group = get_group_or_404(group_id)
     if not ConfirmForm().validate_on_submit():
         abort(400)
@@ -246,6 +264,12 @@ def leave(group_id: int):
 @bp.route("/<int:group_id>/settle", methods=["GET", "POST"])
 @login_required
 def settle(group_id: int):
+    """Record a payment between two members.
+
+    The suggested transfers are shown alongside, and their links prefill the form
+    through ``?from=``, ``?to=`` and ``?amount=``, so settling up is one click
+    rather than retyping the numbers.
+    """
     group = get_group_or_404(group_id)
     choices = [(m.user_id, m.user.full_name) for m in group.members]
 
@@ -291,6 +315,7 @@ def settle(group_id: int):
 @bp.post("/<int:group_id>/settlements/<int:settlement_id>/delete")
 @login_required
 def delete_settlement(group_id: int, settlement_id: int):
+    """Remove a recorded payment. Its sender may undo their own; owners may remove any."""
     group = get_group_or_404(group_id)
     if not ConfirmForm().validate_on_submit():
         abort(400)
@@ -337,6 +362,11 @@ def _csv_safe(value) -> str:
 @bp.route("/<int:group_id>/export.csv")
 @login_required
 def export_csv(group_id: int):
+    """Download every expense and settlement in the group as CSV.
+
+    Cells go through :func:`_csv_safe` because the text in them was typed by
+    group members and a spreadsheet will run a cell that starts like a formula.
+    """
     group = get_group_or_404(group_id)
     buffer = io.StringIO()
     writer = csv.writer(buffer)

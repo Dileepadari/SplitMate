@@ -47,11 +47,15 @@ class SplitType(enum.StrEnum):
 
 
 class MemberRole(enum.StrEnum):
+    """What a member may do. Owners can edit, archive, delete and manage membership."""
+
     OWNER = "owner"
     MEMBER = "member"
 
 
 class User(UserMixin, db.Model):
+    """A person with an account. Identified by username or email, either of which signs in."""
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -74,23 +78,28 @@ class User(UserMixin, db.Model):
 
     # -- password ---------------------------------------------------------
     def set_password(self, raw: str) -> None:
+        """Hash and store ``raw``. The plain password is never written anywhere."""
         self.password_hash = generate_password_hash(raw)
 
     def check_password(self, raw: str) -> bool:
+        """Constant-time comparison of ``raw`` against the stored hash."""
         return check_password_hash(self.password_hash, raw)
 
     # -- display ----------------------------------------------------------
     @property
     def full_name(self) -> str:
+        """First and last name, falling back to the username when neither is set."""
         name = f"{self.first_name} {self.last_name}".strip()
         return name or self.username
 
     @property
     def display_name(self) -> str:
+        """First name only, for greetings and short labels."""
         return self.first_name or self.username
 
     @property
     def initials(self) -> str:
+        """Up to two letters for the avatar placeholder."""
         parts = [p for p in (self.first_name, self.last_name) if p]
         if parts:
             return "".join(p[0] for p in parts[:2]).upper()
@@ -98,6 +107,7 @@ class User(UserMixin, db.Model):
 
     @property
     def groups(self) -> list[Group]:
+        """Active groups only. Archived ones are reached through ``memberships``."""
         return [m.group for m in self.memberships if not m.group.archived]
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
@@ -105,6 +115,8 @@ class User(UserMixin, db.Model):
 
 
 class Group(db.Model):
+    """A set of people who split expenses together, in one currency."""
+
     __tablename__ = "groups"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -133,20 +145,25 @@ class Group(db.Model):
 
     @property
     def member_users(self) -> list[User]:
+        """The people in the group, in the order they joined."""
         return [m.user for m in self.members]
 
     def membership_for(self, user_id: int) -> GroupMember | None:
+        """The membership row for ``user_id``, or None if they are not in this group."""
         return next((m for m in self.members if m.user_id == user_id), None)
 
     def has_member(self, user_id: int) -> bool:
+        """Whether ``user_id`` belongs to this group. The access checks start here."""
         return self.membership_for(user_id) is not None
 
     def is_owner(self, user_id: int) -> bool:
+        """Whether ``user_id`` may edit, archive, delete or change who is in the group."""
         member = self.membership_for(user_id)
         return member is not None and member.role == MemberRole.OWNER
 
     @property
     def total_spend(self) -> Decimal:
+        """Everything spent in the group. Settlements are not spending, so they are excluded."""
         return sum((e.amount for e in self.expenses), ZERO)
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
@@ -154,6 +171,8 @@ class Group(db.Model):
 
 
 class GroupMember(db.Model):
+    """One person's membership of one group, carrying their role in it."""
+
     __tablename__ = "group_members"
     __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member"),)
 
@@ -170,6 +189,8 @@ class GroupMember(db.Model):
 
 
 class Expense(db.Model):
+    """Something one member paid for, divided into shares that sum back to the amount."""
+
     __tablename__ = "expenses"
     __table_args__ = (
         CheckConstraint("amount > 0", name="ck_expense_amount_positive"),
@@ -199,10 +220,12 @@ class Expense(db.Model):
     )
 
     def share_for(self, user_id: int) -> Decimal:
+        """What ``user_id`` owes on this expense, or zero if they were not in the split."""
         return next((s.amount for s in self.shares if s.user_id == user_id), ZERO)
 
     @property
     def participants(self) -> list[User]:
+        """The people this expense was split between."""
         return [s.user for s in self.shares]
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid

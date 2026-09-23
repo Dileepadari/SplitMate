@@ -46,11 +46,15 @@ class BaseConfig:
 
 
 class DevelopmentConfig(BaseConfig):
+    """Local development: debugger on, templates reloaded on change."""
+
     DEBUG = True
     TEMPLATES_AUTO_RELOAD = True
 
 
 class TestingConfig(BaseConfig):
+    """In-memory database and no CSRF, so tests can post forms directly."""
+
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     WTF_CSRF_ENABLED = False
@@ -58,6 +62,8 @@ class TestingConfig(BaseConfig):
 
 
 class ProductionConfig(BaseConfig):
+    """Refuses to start on the default SECRET_KEY, rather than signing cookies with it."""
+
     DEBUG = False
     SESSION_COOKIE_SECURE = _bool("SESSION_COOKIE_SECURE", True)
 

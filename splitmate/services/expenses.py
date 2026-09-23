@@ -31,6 +31,7 @@ class SplitResult:
 
     @property
     def ok(self) -> bool:
+        """True when nothing blocked the split, so ``shares`` is safe to apply."""
         return not self.errors
 
 
