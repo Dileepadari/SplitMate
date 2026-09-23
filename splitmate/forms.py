@@ -8,7 +8,7 @@ dynamic per group, so they are validated in
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from flask_wtf import FlaskForm
 from wtforms import (
@@ -33,7 +33,22 @@ from wtforms.validators import (
     ValidationError,
 )
 
+from .models import utcnow
 from .services.money import CURRENCY_SYMBOLS, MAX_AMOUNT, is_usable_amount
+
+
+def latest_allowed_date() -> date:
+    """The furthest date a user may put on an expense or a payment.
+
+    Every datetime column stores UTC, but ``date.today()`` is whatever the
+    *server's* clock says. Validating against it means a user in UTC+5:30
+    recording an expense at 2am is told their own today is in the future,
+    because the server is still on yesterday. No timezone is more than about
+    fourteen hours from UTC, so allowing one extra day accepts a real "today"
+    anywhere on the planet while still rejecting a date that is genuinely ahead.
+    """
+    return utcnow().date() + timedelta(days=1)
+
 
 class UsableAmount:
     """Reject a money value the application cannot store.
@@ -171,7 +186,7 @@ class ExpenseForm(FlaskForm):
     submit = SubmitField("Save expense")
 
     def validate_spent_at(self, field):
-        if field.data and field.data > date.today():
+        if field.data and field.data > latest_allowed_date():
             raise ValidationError("The date cannot be in the future.")
 
 
@@ -196,7 +211,7 @@ class SettlementForm(FlaskForm):
             raise ValidationError("Pick two different people.")
 
     def validate_settled_at(self, field):
-        if field.data and field.data > date.today():
+        if field.data and field.data > latest_allowed_date():
             raise ValidationError("The date cannot be in the future.")
 
 
