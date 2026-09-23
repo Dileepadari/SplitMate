@@ -23,9 +23,9 @@ from wtforms import (
 )
 from wtforms.validators import (
     DataRequired,
-    InputRequired,
     Email,
     EqualTo,
+    InputRequired,
     Length,
     NumberRange,
     Optional,
@@ -33,7 +33,27 @@ from wtforms.validators import (
     ValidationError,
 )
 
-from .services.money import CURRENCY_SYMBOLS
+from .services.money import CURRENCY_SYMBOLS, MAX_AMOUNT, is_usable_amount
+
+class UsableAmount:
+    """Reject a money value the application cannot store.
+
+    ``NumberRange`` is not enough on its own. ``Decimal`` accepts ``NaN`` and
+    ``Infinity`` as ordinary values and puts no ceiling on the exponent, and
+    comparing a ``NaN`` against the bound does not raise, it answers False, so
+    the field validates and the failure surfaces later as a 500 from
+    ``quantize``. This says what the field actually requires.
+    """
+
+    def __init__(self, message: str | None = None):
+        self.message = message or f"Enter an amount between 0.01 and {MAX_AMOUNT}."
+
+    def __call__(self, form, field):
+        if field.data is None:
+            return
+        if not is_usable_amount(field.data):
+            raise ValidationError(self.message)
+
 
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
 
@@ -135,6 +155,7 @@ class ExpenseForm(FlaskForm):
         places=2,
         validators=[
             InputRequired(message="Enter an amount."),
+            UsableAmount(),
             NumberRange(min=0.01, message="Amount must be positive."),
         ],
     )
@@ -162,6 +183,7 @@ class SettlementForm(FlaskForm):
         places=2,
         validators=[
             InputRequired(message="Enter an amount."),
+            UsableAmount(),
             NumberRange(min=0.01, message="Amount must be positive."),
         ],
     )

@@ -11,7 +11,15 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from ..models import Expense, ExpenseShare, Group, SplitType
-from .money import ZERO, quantize, split_by_weights, split_equal, to_decimal
+from .money import (
+    MAX_AMOUNT,
+    ZERO,
+    is_usable_amount,
+    quantize,
+    split_by_weights,
+    split_equal,
+    to_decimal,
+)
 
 
 @dataclass
@@ -44,6 +52,13 @@ def build_shares(
         result.errors.append("Someone in that split is not a member of this group.")
     if not ordered:
         result.errors.append("Pick at least one person to split between.")
+        return result
+
+    # Screen before quantizing: an infinity or a 999-digit exponent makes
+    # quantize raise, and any comparison against a NaN raises too, so an
+    # unscreened amount leaves here as a 500 rather than a message.
+    if not is_usable_amount(amount if isinstance(amount, Decimal) else to_decimal(amount)):
+        result.errors.append(f"Amount must be a number between 0.01 and {MAX_AMOUNT}.")
         return result
 
     amount = quantize(amount)

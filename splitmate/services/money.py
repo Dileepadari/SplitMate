@@ -8,10 +8,17 @@ whole.
 
 from __future__ import annotations
 
+import re
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 CENT = Decimal("0.01")
 ZERO = Decimal("0.00")
+
+#: Amounts are stored in ``Numeric(12, 2)``, so ten integer digits is the ceiling.
+#: Anything beyond it cannot be persisted, and ``Decimal`` will happily carry a
+#: value with a 999-digit exponent right up to the point where ``quantize``
+#: raises. Screen it here instead.
+MAX_AMOUNT = Decimal("9999999999.99")
 
 CURRENCY_SYMBOLS = {
     "INR": "₹",
@@ -26,21 +33,56 @@ CURRENCY_SYMBOLS = {
 }
 
 
+def is_usable_amount(value) -> bool:
+    """True when ``value`` is a number this application can actually store.
+
+    ``Decimal`` accepts ``NaN`` and ``Infinity`` as ordinary values, and puts no
+    ceiling on the exponent. None of the three survives contact with the rest of
+    the app: ``quantize`` raises on an infinity or a huge exponent, and any
+    ordering comparison against a ``NaN`` raises as well, so a form field
+    carrying one turns into a 500 rather than a validation message.
+    """
+    if not isinstance(value, Decimal):
+        return False
+    return value.is_finite() and abs(value) <= MAX_AMOUNT
+
+
 def quantize(value: Decimal | int | float | str) -> Decimal:
-    """Round ``value`` to two decimal places, half-up."""
+    """Round ``value`` to two decimal places, half-up.
+
+    Raises :class:`decimal.InvalidOperation` on a non-finite or oversized value,
+    which is why callers handling user input screen it with
+    :func:`is_usable_amount` first.
+    """
     if not isinstance(value, Decimal):
         value = Decimal(str(value))
     return value.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
+#: A comma only means "thousands separator" in the positions a grouped number
+#: puts it: three digits after each one. ``12,50`` is not that, it is somebody
+#: writing twelve fifty the European way, and stripping the comma turns it into
+#: 1250.00 without a word. Numbers shaped like that are rejected so the user
+#: gets a validation message instead of a hundredfold charge.
+_GROUPED = re.compile(r"^-?\d{1,3}(,\d{3})*(\.\d*)?$")
+
+
 def to_decimal(value, default: Decimal | None = None) -> Decimal | None:
-    """Parse user input into a Decimal, returning ``default`` when it is not a number."""
+    """Parse user input into a Decimal, returning ``default`` when it is not a usable number."""
     if value is None or value == "":
         return default
+    text = str(value).strip()
+    if "," in text:
+        if not _GROUPED.match(text):
+            return default
+        text = text.replace(",", "")
     try:
-        return quantize(Decimal(str(value).strip().replace(",", "")))
+        parsed = Decimal(text)
     except (InvalidOperation, ValueError, ArithmeticError):
         return default
+    if not is_usable_amount(parsed):
+        return default
+    return quantize(parsed)
 
 
 def symbol_for(currency: str) -> str:
