@@ -2,7 +2,6 @@
 {% from "partials/icons.html" import icon %}
 {% from "partials/ui.html" import avatar, field %}
 {% block title %}{{ 'Edit expense' if expense else 'Add expense' }} - {{ app_name }}{% endblock %}
-{% block main_class %}main-narrow{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -18,6 +17,7 @@
 </div>
 
 <form method="post" novalidate>
+  <div class="cols-2">
   {{ form.csrf_token }}
 
   <div class="card mb-1">
@@ -104,11 +104,12 @@
     </div>
   </div>
 
-  <div class="form-actions">
+  <div class="form-actions col-span">
     {{ form.submit(class='btn btn-primary') }}
     <a class="btn btn-ghost"
        href="{{ url_for('expenses.detail', group_id=group.id, expense_id=expense.id) if expense
                 else url_for('groups.detail', group_id=group.id) }}">Cancel</a>
+  </div>
   </div>
 </form>
 {% endblock %}

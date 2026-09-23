@@ -2,7 +2,6 @@
 {% from "partials/icons.html" import icon %}
 {% from "partials/ui.html" import avatar, field, net_badge, post_button %}
 {% block title %}Settings - {{ app_name }}{% endblock %}
-{% block main_class %}main-narrow{% endblock %}
 
 {% block content %}
 <div class="page-head">
@@ -22,6 +21,8 @@
     </div>
   </div>
 </div>
+
+<div class="cols-2">
 
 <div class="card mb-1">
   <div class="card-head"><h2>Profile</h2></div>
@@ -54,6 +55,8 @@
       <div class="form-actions">{{ password_form.submit(class='btn btn-primary') }}</div>
     </form>
   </div>
+</div>
+
 </div>
 
 <div class="card mb-1">
