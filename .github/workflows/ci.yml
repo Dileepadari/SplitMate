@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint and tests - Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pyproject declares requires-python >= 3.11, so the floor is tested too.
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Tests
+        run: pytest -q --cov=splitmate --cov-report=term-missing --cov-fail-under=85
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - run: pip install pip-audit==2.9.0
+
+      # --strict so an advisory database that fails to load is an error rather
+      # than a clean run that checked nothing.
+      - name: Audit runtime dependencies
+        run: pip-audit --strict -r requirements.txt
+
+  boot:
+    name: The app starts and the migrations apply
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - run: pip install -r requirements-dev.txt
+
+      # The test suite calls create_all(), so it never exercises alembic. A
+      # migration that does not apply would otherwise only be found on deploy.
+      - name: Apply migrations to an empty database
+        env:
+          FLASK_APP: wsgi.py
+          SECRET_KEY: ci-only-not-a-real-secret
+          DATABASE_URL: sqlite:///ci.db
+        run: flask db upgrade
+
+      - name: Seed the demo data and serve a page
+        env:
+          FLASK_APP: wsgi.py
+          SECRET_KEY: ci-only-not-a-real-secret
+          DATABASE_URL: sqlite:///ci.db
+        run: |
+          flask seed-demo
+          gunicorn --bind 127.0.0.1:8000 --workers 1 wsgi:app &
+          for _ in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/login >/dev/null; then
+              echo "the app answered on /login"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "the app never answered"
+          exit 1
+
+  secrets:
+    name: No database or env file is committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # A SQLite file was tracked here from 2023 to 2026 with seven accounts'
+      # passwords in clear text in it. .gitignore does not stop `git add -f`,
+      # so the rule is enforced rather than merely written down.
+      - name: No SQLite database or .env is tracked
+        run: |
+          if git ls-files | grep -E '\.(db|sqlite|sqlite3)$|(^|/)\.env$'; then
+            echo "A database or .env file is tracked. Remove it from the index."
+            exit 1
+          fi
+          echo "clean"
+
+  hygiene:
+    name: Plain ASCII in prose and interface strings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: No em dashes, arrows or dingbats
+        run: |
+          if git ls-files -z \
+              | xargs -0 grep -nP '[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{2190}-\x{21FF}\x{2014}\x{2013}\x{FE0F}]' \
+                --binary-files=without-match; then
+            echo "Found an em dash, en dash, arrow or dingbat. Use -, -> or plain words."
+            exit 1
+          fi
+          echo "clean"
