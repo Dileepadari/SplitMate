@@ -55,7 +55,7 @@
     <span class="meta">{{ summary.member_count }} member{{ '' if summary.member_count == 1 else 's' }}</span>
     <span class="amount {{ 'pos' if summary.net > 0 }}{{ 'neg' if summary.net < 0 }}">
       {%- if summary.net == 0 -%}
-        <span class="faint">&mdash;</span>
+        <span class="faint">-</span>
       {%- else -%}
         {{ summary.net|abs_money(summary.group.currency) }}
       {%- endif -%}

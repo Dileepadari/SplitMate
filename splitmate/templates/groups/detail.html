@@ -108,7 +108,7 @@
           <td class="num mono faint">
             {%- if b.settled_out or b.settled_in -%}
               +{{ b.settled_out|money(group.currency) }} / -{{ b.settled_in|money(group.currency) }}
-            {%- else -%}&mdash;{%- endif -%}
+            {%- else -%}-{%- endif -%}
           </td>
           <td class="num">{{ net_badge(b.net, group.currency) }}</td>
         </tr>
