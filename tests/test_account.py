@@ -1,6 +1,5 @@
 """Profile, password, theme and account deletion."""
 
-from decimal import Decimal
 
 from splitmate.extensions import db
 from splitmate.models import Group, MemberRole, User

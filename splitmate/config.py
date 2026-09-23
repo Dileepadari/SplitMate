@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from datetime import timedelta
 from pathlib import Path
+from typing import ClassVar
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 INSTANCE_DIR = BASE_DIR / "instance"
@@ -26,7 +27,7 @@ class BaseConfig:
         "DATABASE_URL", f"sqlite:///{INSTANCE_DIR / 'splitmate.db'}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict] = {"pool_pre_ping": True}
 
     # Session and CSRF
     PERMANENT_SESSION_LIFETIME = timedelta(days=14)

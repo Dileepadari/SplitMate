@@ -1,3 +1,6 @@
 -r requirements.txt
 pytest==9.1.1
 pytest-cov==7.1.0
+# Pinned: "ruff check" with no version pin means whatever rules that release
+# defaults to, so the same code lints clean locally and fails in CI.
+ruff==0.16.8

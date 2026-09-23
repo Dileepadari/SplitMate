@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import io
 from decimal import Decimal
@@ -257,10 +258,10 @@ def settle(group_id: int):
         form.to_user_id.data = request.args.get("to", type=int)
         suggested = request.args.get("amount", type=str)
         if suggested:
-            try:
+            # A junk ?amount= just means no prefill; the form validates it properly
+            # on submit either way.
+            with contextlib.suppress(ArithmeticError):
                 form.amount.data = Decimal(suggested)
-            except ArithmeticError:
-                pass
 
     if form.validate_on_submit():
         db.session.add(

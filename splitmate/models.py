@@ -7,7 +7,7 @@ everywhere. Nothing in this app should ever put a float on a money column.
 from __future__ import annotations
 
 import enum
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from flask_login import UserMixin
@@ -35,10 +35,10 @@ ZERO = Decimal("0.00")
 
 def utcnow() -> datetime:
     """Timezone-aware UTC now. All datetime columns store UTC."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
-class SplitType(str, enum.Enum):
+class SplitType(enum.StrEnum):
     """How an expense amount is divided among its participants."""
 
     EQUAL = "equal"
@@ -46,7 +46,7 @@ class SplitType(str, enum.Enum):
     SHARES = "shares"
 
 
-class MemberRole(str, enum.Enum):
+class MemberRole(enum.StrEnum):
     OWNER = "owner"
     MEMBER = "member"
 
@@ -65,10 +65,10 @@ class User(UserMixin, db.Model):
     theme: Mapped[str] = mapped_column(String(10), nullable=False, default="system")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    memberships: Mapped[list["GroupMember"]] = relationship(
+    memberships: Mapped[list[GroupMember]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
-    expenses_paid: Mapped[list["Expense"]] = relationship(
+    expenses_paid: Mapped[list[Expense]] = relationship(
         back_populates="payer", foreign_keys="Expense.payer_id"
     )
 
@@ -97,7 +97,7 @@ class User(UserMixin, db.Model):
         return self.username[:2].upper()
 
     @property
-    def groups(self) -> list["Group"]:
+    def groups(self) -> list[Group]:
         return [m.group for m in self.memberships if not m.group.archived]
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
@@ -121,13 +121,13 @@ class Group(db.Model):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
-    members: Mapped[list["GroupMember"]] = relationship(
+    members: Mapped[list[GroupMember]] = relationship(
         back_populates="group", cascade="all, delete-orphan", order_by="GroupMember.joined_at"
     )
-    expenses: Mapped[list["Expense"]] = relationship(
+    expenses: Mapped[list[Expense]] = relationship(
         back_populates="group", cascade="all, delete-orphan", order_by="Expense.spent_at.desc()"
     )
-    settlements: Mapped[list["Settlement"]] = relationship(
+    settlements: Mapped[list[Settlement]] = relationship(
         back_populates="group", cascade="all, delete-orphan", order_by="Settlement.settled_at.desc()"
     )
 
@@ -135,7 +135,7 @@ class Group(db.Model):
     def member_users(self) -> list[User]:
         return [m.user for m in self.members]
 
-    def membership_for(self, user_id: int) -> "GroupMember | None":
+    def membership_for(self, user_id: int) -> GroupMember | None:
         return next((m for m in self.members if m.user_id == user_id), None)
 
     def has_member(self, user_id: int) -> bool:
@@ -194,7 +194,7 @@ class Expense(db.Model):
 
     group: Mapped[Group] = relationship(back_populates="expenses")
     payer: Mapped[User] = relationship(back_populates="expenses_paid", foreign_keys=[payer_id])
-    shares: Mapped[list["ExpenseShare"]] = relationship(
+    shares: Mapped[list[ExpenseShare]] = relationship(
         back_populates="expense", cascade="all, delete-orphan"
     )
 

@@ -12,6 +12,36 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["splitmate*"]
 
+# Without an explicit select, "ruff check" means whatever the installed ruff
+# version happens to default to, so the same code lints clean on one machine and
+# fails on another. Pin the rule set here and the version in requirements-dev.txt.
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# Alembic writes these from its own templates and will rewrite them in its own
+# style next time; reformatting them just makes a diff that comes back.
+exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle
+    "F",      # pyflakes
+    "I",      # import order
+    "UP",     # pyupgrade
+    "B",      # bugbear
+    "C4",     # comprehensions
+    "DTZ",    # naive datetimes: this app stores UTC, so they matter
+    "RUF",
+    "SIM",
+]
+ignore = [
+    "E501",   # line length is handled by the formatter, not by failing the build
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Fixtures and factories build objects positionally on purpose.
+"tests/*" = ["B008"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

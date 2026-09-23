@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
 import click
@@ -19,9 +19,9 @@ from .models import (
     Settlement,
     SplitType,
     User,
+    utcnow,
 )
 from .services.expenses import apply_shares, build_shares
-
 
 DEMO_USERS = [
     ("dileep", "dileepkumar.adari@students.iiit.ac.in", "Dileep", "Adari"),
@@ -125,7 +125,7 @@ def register_cli(app: Flask) -> None:
                 category=category,
                 amount=total,
                 split_type=split_type,
-                spent_at=date.today() - timedelta(days=len(DEMO_EXPENSES) - index),
+                spent_at=utcnow().date() - timedelta(days=len(DEMO_EXPENSES) - index),
             )
             apply_shares(expense, result.shares)
             db.session.add(expense)
@@ -137,7 +137,7 @@ def register_cli(app: Flask) -> None:
                 to_user_id=users[0].id,
                 amount=Decimal("400.00"),
                 note="UPI",
-                settled_at=date.today() - timedelta(days=1),
+                settled_at=utcnow().date() - timedelta(days=1),
             )
         )
         db.session.commit()
