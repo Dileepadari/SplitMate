@@ -23,10 +23,13 @@ from .models import (
 )
 from .services.expenses import apply_shares, build_shares
 
+#: Addresses are all ``@example.com``, which RFC 2606 reserves for exactly this.
+#: Two of these were real university addresses, one of them somebody else's, in a
+#: public repository and in every screenshot of the settings page.
 DEMO_USERS = [
-    ("dileep", "dileepkumar.adari@students.iiit.ac.in", "Dileep", "Adari"),
+    ("dileep", "dileep@example.com", "Dileep", "Adari"),
     ("aadi", "aadi.prasad@example.com", "Aadi", "Prasad"),
-    ("chanukya", "satuluri.charyulu@students.iiit.ac.in", "Chanukya", "Charyulu"),
+    ("chanukya", "chanukya@example.com", "Chanukya", "Charyulu"),
     ("riya", "riya@example.com", "Riya", "Menon"),
 ]
 
